@@ -1,0 +1,22 @@
+{
+    "appTitle": "গ্রামীণ রাইড",
+    "welcomeMessage": "গ্রামীণ রাইডে স্বাগতম",
+    "selectRideType": "রাইড টাইপ নির্বাচন করুন",
+    "van": "ভ্যান",
+    "rickshaw": "রিকশা",
+    "cng": "সিএনজি",
+    "motorcycle": "মটর বাইক",
+    "auto": "অটো",
+    "pickupVan": "পিকআপ ভ্যান",
+    "singleRide": "একক যাত্রা",
+    "hourlyRent": "ঘণ্টায় ভাড়া",
+    "dailyRent": "দৈনিক ভাড়া",
+    "selectLanguage": "ভাষা নির্বাচন করুন",
+    "findRide": "রাইড খুঁজুন",
+    "bookNow": "বুক করুন",
+    "whereToGo": "আপনি কোথায় যেতে চান?",
+    "currentLocation": "বর্তমান অবস্থান",
+    "destination": "গন্তব্য",
+    "confirm": "নিশ্চিত করুন",
+    "cancel": "বাতিল"
+} 

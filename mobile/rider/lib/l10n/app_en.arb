@@ -1,0 +1,22 @@
+{
+    "appTitle": "Grameen Rider (Driver)",
+    "welcomeMessage": "Welcome to Grameen Rider (Driver)",
+    "selectRideType": "Select Ride Type",
+    "van": "Van",
+    "rickshaw": "Rickshaw",
+    "cng": "CNG Auto",
+    "motorcycle": "Motorcycle",
+    "auto": "Auto",
+    "pickupVan": "Pickup Van",
+    "singleRide": "Single Ride",
+    "hourlyRent": "Rent by Hour",
+    "dailyRent": "Rent for Day",
+    "selectLanguage": "Select Language",
+    "findRide": "Find Ride",
+    "bookNow": "Book Now",
+    "whereToGo": "Where do you want to go?",
+    "currentLocation": "Current Location",
+    "destination": "Destination",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+} 

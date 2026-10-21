@@ -1,0 +1,116 @@
+version: '3.8'
+name: grameen-ride
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: grameen-ride-postgres
+    environment:
+      POSTGRES_USER: grameenride
+      POSTGRES_PASSWORD: grameenride123
+      POSTGRES_DB: grameenride
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grameenride"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grameen-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: grameen-ride-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grameen-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: grameen-ride-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - grameen-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: grameen-ride-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - grameen-network
+
+  ride-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grameen-ride-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 5006
+      DATABASE_URL: postgresql://grameenride:grameenride123@postgres:5432/grameenride
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: grameen-ride-service
+      KAFKA_GROUP_ID: ride-service-group
+      AUTH_SERVER_URL: ${AUTH_SERVER_URL:-http://localhost:8080}
+      AUTH_SERVER_JWT_SECRET: ${AUTH_SERVER_JWT_SECRET:-your-jwt-secret-change-in-production}
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY:-}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+    ports:
+      - "5006:5006"
+    volumes:
+      - /app/node_modules
+    command: npm run start:prod
+    networks:
+      - grameen-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  grameen-network:
+    driver: bridge
+
