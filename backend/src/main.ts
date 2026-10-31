@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -33,6 +34,9 @@ async function bootstrap() {
     }),
   );
   
+  // Global exception filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   // Global prefix
   app.setGlobalPrefix('api');
   

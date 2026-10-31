@@ -22,6 +22,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { SupportModule } from './support/support.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { SupportModule } from './support/support.module';
     RatingsModule,
     PromotionsModule,
     SupportModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

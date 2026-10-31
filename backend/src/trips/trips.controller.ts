@@ -12,13 +12,35 @@ import {
 import { Request as ExpressRequest } from 'express';
 import { TripsService } from './trips.service';
 import { DriversService } from '../drivers/drivers.service';
+import { FareCalculationService } from './fare-calculation.service';
 
 @Controller('trips')
 export class TripsController {
   constructor(
     private readonly tripsService: TripsService,
     private readonly driversService: DriversService,
+    private readonly fareCalculationService: FareCalculationService,
   ) {}
+
+  @Get('fare-estimate')
+  estimateFare(
+    @Body()
+    body: {
+      vehicleType: string;
+      distanceKm: number;
+      durationMinutes?: number;
+      rentalType?: 'single' | 'hourly' | 'daily' | 'custom';
+      rentalDurationHours?: number;
+    },
+  ) {
+    return this.fareCalculationService.calculate(
+      body.vehicleType,
+      body.distanceKm,
+      body.durationMinutes ?? 0,
+      body.rentalType ?? 'single',
+      body.rentalDurationHours,
+    );
+  }
 
   @Post()
   async createTrip(@Request() req: ExpressRequest, @Body() createTripDto: any) {

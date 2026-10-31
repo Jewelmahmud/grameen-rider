@@ -7,6 +7,7 @@ import { TripsService } from './trips.service';
 import { TripsController } from './trips.controller';
 import { DriverMatchingService } from './driver-matching.service';
 import { ScheduledTripsService } from './scheduled-trips.service';
+import { FareCalculationService } from './fare-calculation.service';
 import { DriversModule } from '../drivers/drivers.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PromotionsModule } from '../promotions/promotions.module';
@@ -18,8 +19,8 @@ import { PromotionsModule } from '../promotions/promotions.module';
     RealtimeModule,
     PromotionsModule,
   ],
-  providers: [TripsService, DriverMatchingService, ScheduledTripsService],
+  providers: [TripsService, DriverMatchingService, ScheduledTripsService, FareCalculationService],
   controllers: [TripsController],
-  exports: [TripsService],
+  exports: [TripsService, FareCalculationService],
 })
 export class TripsModule {}
