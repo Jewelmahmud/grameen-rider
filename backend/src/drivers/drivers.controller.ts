@@ -1,4 +1,12 @@
-import { Controller, Get, Put, Body, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Request,
+  NotFoundException,
+} from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { DriversService } from './drivers.service';
 
@@ -6,9 +14,30 @@ import { DriversService } from './drivers.service';
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
 
+  @Post()
+  async createDriverProfile(
+    @Request() req: ExpressRequest,
+    @Body()
+    body: {
+      licenseNumber: string;
+      licenseExpiryDate?: string;
+      vehicleRegistrationNumber: string;
+    },
+  ) {
+    return this.driversService.createDriverProfile(req.userProfile.id, {
+      licenseNumber: body.licenseNumber,
+      licenseExpiryDate: body.licenseExpiryDate,
+      vehicleRegistrationNumber: body.vehicleRegistrationNumber,
+    });
+  }
+
   @Get('me')
   async getMyProfile(@Request() req: ExpressRequest) {
-    return this.driversService.getDriverProfile(req.userProfile.id);
+    const driver = await this.driversService.getDriverProfile(req.userProfile.id);
+    if (!driver) {
+      throw new NotFoundException('Driver profile not found');
+    }
+    return driver;
   }
 
   @Put('location')
@@ -18,13 +47,9 @@ export class DriversController {
   ) {
     const driver = await this.driversService.getDriverProfile(req.userProfile.id);
     if (!driver) {
-      throw new Error('Driver profile not found');
+      throw new NotFoundException('Driver profile not found');
     }
-    await this.driversService.updateLocation(
-      driver.id,
-      body.latitude,
-      body.longitude,
-    );
+    await this.driversService.updateLocation(driver.id, body.latitude, body.longitude);
     return { success: true };
   }
 
@@ -35,14 +60,9 @@ export class DriversController {
   ) {
     const driver = await this.driversService.getDriverProfile(req.userProfile.id);
     if (!driver) {
-      throw new Error('Driver profile not found');
+      throw new NotFoundException('Driver profile not found');
     }
-    await this.driversService.updateAvailability(
-      driver.id,
-      body.isOnline,
-      body.isAvailable,
-    );
+    await this.driversService.updateAvailability(driver.id, body.isOnline, body.isAvailable);
     return { success: true };
   }
 }
-

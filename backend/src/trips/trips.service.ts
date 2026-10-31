@@ -1,17 +1,47 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Trip } from '../entities/trip.entity';
+import { Driver } from '../entities/driver.entity';
+import { DriverEarning } from '../entities/driver-earning.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
 import { DriverMatchingService } from './driver-matching.service';
 import { RealtimeService } from '../realtime/realtime.service';
+
+export interface CreateTripDto {
+  vehicleType: string;
+  rentalType: 'single' | 'hourly' | 'daily' | 'custom';
+  pickupAddress: string;
+  pickupLatitude: number;
+  pickupLongitude: number;
+  dropoffAddress: string;
+  dropoffLatitude: number;
+  dropoffLongitude: number;
+  scheduledDatetime?: Date;
+  passengerCount?: number;
+  baseFare: number;
+  subtotal: number;
+  totalFare: number;
+  specialInstructions?: string;
+}
+
+export interface CancelTripDto {
+  cancellationReason?: string;
+  cancelledBy?: 'passenger' | 'driver' | 'system';
+}
+
+const DRIVER_COMMISSION_PERCENTAGE = 15;
 
 @Injectable()
 export class TripsService {
   constructor(
     @InjectRepository(Trip)
     private tripsRepository: Repository<Trip>,
+    @InjectRepository(Driver)
+    private driverRepository: Repository<Driver>,
+    @InjectRepository(DriverEarning)
+    private driverEarningRepository: Repository<DriverEarning>,
     private eventEmitter: EventEmitter2,
     private driverMatchingService: DriverMatchingService,
     private realtimeService: RealtimeService,
@@ -68,44 +98,23 @@ export class TripsService {
     });
   }
 
-  async updateStatus(tripId: string, status: Trip['status']): Promise<Trip> {
-    const trip = await this.findById(tripId);
-    if (!trip) {
-      throw new Error('Trip not found');
-    }
-
-    const oldStatus = trip.status;
-    trip.status = status;
-    const updatedTrip = await this.tripsRepository.save(trip);
-
-    this.eventEmitter.emit('trip.status.changed', {
-      tripId: updatedTrip.id,
-      oldStatus,
-      newStatus: status,
-    });
-
-    await this.realtimeService.notifyTripStatusUpdated(updatedTrip, oldStatus);
-
-    return updatedTrip;
-  }
-
   async acceptTrip(tripId: string, driverId: string): Promise<Trip> {
     const lockKey = `trip:accept:${tripId}`;
     const lockValue = `${driverId}:${Date.now()}`;
     const lockAcquired = await this.redisClient.set(lockKey, lockValue, 'EX', 30, 'NX');
 
     if (!lockAcquired) {
-      throw new Error('Trip is already being accepted by another driver');
+      throw new BadRequestException('Trip is already being accepted by another driver');
     }
 
     try {
       const trip = await this.findById(tripId);
       if (!trip) {
-        throw new Error('Trip not found');
+        throw new NotFoundException('Trip not found');
       }
 
       if (!['pending', 'searching_driver'].includes(trip.status)) {
-        throw new Error('Trip is no longer available');
+        throw new BadRequestException('Trip is no longer available');
       }
 
       const oldStatus = trip.status;
@@ -131,6 +140,188 @@ export class TripsService {
     }
   }
 
+  async arriveAtPickup(tripId: string, driverId: string): Promise<Trip> {
+    const trip = await this.findById(tripId);
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (trip.driverId !== driverId) {
+      throw new ForbiddenException('You are not the assigned driver for this trip');
+    }
+
+    if (trip.status !== 'accepted') {
+      throw new BadRequestException(
+        `Cannot mark arrival from status "${trip.status}". Trip must be in "accepted" status.`,
+      );
+    }
+
+    const oldStatus = trip.status;
+    trip.status = 'driver_arrived';
+    trip.driverArrivedAt = new Date();
+
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    this.eventEmitter.emit('trip.status.changed', {
+      tripId: updatedTrip.id,
+      oldStatus,
+      newStatus: updatedTrip.status,
+    });
+
+    await this.realtimeService.notifyTripStatusUpdated(updatedTrip, oldStatus);
+    return updatedTrip;
+  }
+
+  async startTrip(tripId: string, driverId: string): Promise<Trip> {
+    const trip = await this.findById(tripId);
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (trip.driverId !== driverId) {
+      throw new ForbiddenException('You are not the assigned driver for this trip');
+    }
+
+    if (trip.status !== 'driver_arrived') {
+      throw new BadRequestException(
+        `Cannot start trip from status "${trip.status}". Trip must be in "driver_arrived" status.`,
+      );
+    }
+
+    const oldStatus = trip.status;
+    trip.status = 'in_progress';
+    trip.startedAt = new Date();
+
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    this.eventEmitter.emit('trip.status.changed', {
+      tripId: updatedTrip.id,
+      oldStatus,
+      newStatus: updatedTrip.status,
+    });
+
+    await this.realtimeService.notifyTripStatusUpdated(updatedTrip, oldStatus);
+    return updatedTrip;
+  }
+
+  async completeTrip(tripId: string, driverId: string): Promise<Trip> {
+    const trip = await this.findById(tripId);
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (trip.driverId !== driverId) {
+      throw new ForbiddenException('You are not the assigned driver for this trip');
+    }
+
+    if (trip.status !== 'in_progress') {
+      throw new BadRequestException(
+        `Cannot complete trip from status "${trip.status}". Trip must be "in_progress".`,
+      );
+    }
+
+    const oldStatus = trip.status;
+    const now = new Date();
+    trip.status = 'completed';
+    trip.completedAt = now;
+
+    if (trip.startedAt) {
+      trip.actualDurationMinutes = Math.round(
+        (now.getTime() - trip.startedAt.getTime()) / 60000,
+      );
+    }
+
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    // Create earnings record
+    await this.createDriverEarningRecord(updatedTrip);
+
+    // Update driver stats
+    await this.driverRepository.increment(
+      { id: driverId },
+      'totalRides',
+      1,
+    );
+    await this.driverRepository.increment(
+      { id: driverId },
+      'totalEarnings',
+      Number(updatedTrip.totalFare),
+    );
+
+    this.eventEmitter.emit('trip.status.changed', {
+      tripId: updatedTrip.id,
+      oldStatus,
+      newStatus: updatedTrip.status,
+    });
+
+    await this.realtimeService.notifyTripStatusUpdated(updatedTrip, oldStatus);
+    return updatedTrip;
+  }
+
+  async cancelTrip(tripId: string, dto: CancelTripDto): Promise<Trip> {
+    const trip = await this.findById(tripId);
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    const cancellableStatuses = [
+      'pending',
+      'searching_driver',
+      'accepted',
+      'driver_assigned',
+      'driver_arriving',
+      'driver_arrived',
+    ];
+
+    if (!cancellableStatuses.includes(trip.status)) {
+      throw new BadRequestException(
+        `Cannot cancel a trip with status "${trip.status}".`,
+      );
+    }
+
+    const oldStatus = trip.status;
+    trip.status = 'cancelled';
+    trip.cancelledAt = new Date();
+    trip.cancellationReason = dto.cancellationReason ?? null;
+    trip.cancelledBy = dto.cancelledBy ?? 'passenger';
+
+    const updatedTrip = await this.tripsRepository.save(trip);
+
+    // If a driver was assigned, make them available again
+    if (trip.driverId) {
+      await this.driverRepository.update(trip.driverId, {
+        isAvailable: true,
+      });
+    }
+
+    this.eventEmitter.emit('trip.status.changed', {
+      tripId: updatedTrip.id,
+      oldStatus,
+      newStatus: updatedTrip.status,
+    });
+
+    await this.realtimeService.notifyTripStatusUpdated(updatedTrip, oldStatus);
+    return updatedTrip;
+  }
+
+  private async createDriverEarningRecord(trip: Trip): Promise<DriverEarning> {
+    const amount = Number(trip.totalFare);
+    const commissionAmount = Math.round((amount * DRIVER_COMMISSION_PERCENTAGE) / 100 * 100) / 100;
+    const netEarnings = Math.round((amount - commissionAmount) * 100) / 100;
+
+    const earning = this.driverEarningRepository.create({
+      driverId: trip.driverId,
+      tripId: trip.id,
+      amount,
+      commissionPercentage: DRIVER_COMMISSION_PERCENTAGE,
+      commissionAmount,
+      netEarnings,
+      payoutStatus: 'pending',
+    });
+
+    return this.driverEarningRepository.save(earning);
+  }
+
   private generateTripNumber(): string {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -138,21 +329,3 @@ export class TripsService {
     return `TRIP-${dateStr}-${random}`;
   }
 }
-
-interface CreateTripDto {
-  vehicleType: string;
-  rentalType: 'single' | 'hourly' | 'daily' | 'custom';
-  pickupAddress: string;
-  pickupLatitude: number;
-  pickupLongitude: number;
-  dropoffAddress: string;
-  dropoffLatitude: number;
-  dropoffLongitude: number;
-  scheduledDatetime?: Date;
-  passengerCount?: number;
-  baseFare: number;
-  subtotal: number;
-  totalFare: number;
-  specialInstructions?: string;
-}
-

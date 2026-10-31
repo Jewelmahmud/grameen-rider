@@ -4,12 +4,13 @@ import { Driver } from '../entities/driver.entity';
 import { Vehicle } from '../entities/vehicle.entity';
 import { DriversService } from './drivers.service';
 import { DriversController } from './drivers.controller';
+import { VehiclesService } from './vehicles.service';
+import { VehiclesController } from './vehicles.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Driver, Vehicle])],
-  providers: [DriversService],
-  controllers: [DriversController],
+  providers: [DriversService, VehiclesService],
+  controllers: [DriversController, VehiclesController],
   exports: [DriversService],
 })
 export class DriversModule {}
-
