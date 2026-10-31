@@ -21,6 +21,7 @@ import { HealthModule } from './health/health.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { PromotionsModule } from './promotions/promotions.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PromotionsModule } from './promotions/promotions.module';
     RealtimeModule,
     RatingsModule,
     PromotionsModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
