@@ -8,12 +8,14 @@ import { TripsController } from './trips.controller';
 import { DriverMatchingService } from './driver-matching.service';
 import { DriversModule } from '../drivers/drivers.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { PromotionsModule } from '../promotions/promotions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trip, Driver, DriverEarning]),
     DriversModule,
     RealtimeModule,
+    PromotionsModule,
   ],
   providers: [TripsService, DriverMatchingService],
   controllers: [TripsController],

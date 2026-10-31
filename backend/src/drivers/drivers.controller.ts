@@ -40,6 +40,11 @@ export class DriversController {
     return driver;
   }
 
+  @Get('me/earnings')
+  async getMyEarnings(@Request() req: ExpressRequest) {
+    return this.driversService.getEarningsSummary(req.userProfile.id);
+  }
+
   @Put('location')
   async updateLocation(
     @Request() req: ExpressRequest,

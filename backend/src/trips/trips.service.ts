@@ -1,6 +1,12 @@
-import { Inject, Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Trip } from '../entities/trip.entity';
 import { Driver } from '../entities/driver.entity';
 import { DriverEarning } from '../entities/driver-earning.entity';
@@ -8,6 +14,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
 import { DriverMatchingService } from './driver-matching.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { PromotionsService } from '../promotions/promotions.service';
 
 export interface CreateTripDto {
   vehicleType: string;
@@ -24,6 +31,7 @@ export interface CreateTripDto {
   subtotal: number;
   totalFare: number;
   specialInstructions?: string;
+  promotionCode?: string;
 }
 
 export interface CancelTripDto {
@@ -45,21 +53,57 @@ export class TripsService {
     private eventEmitter: EventEmitter2,
     private driverMatchingService: DriverMatchingService,
     private realtimeService: RealtimeService,
+    private promotionsService: PromotionsService,
+    private dataSource: DataSource,
     @Inject('REDIS_CLIENT') private redisClient: Redis,
   ) {}
 
   async createTrip(data: CreateTripDto, userProfileId: string): Promise<Trip> {
     const tripNumber = this.generateTripNumber();
 
-    const trip = this.tripsRepository.create({
-      ...data,
-      tripNumber,
-      passengerId: userProfileId,
-      status: 'searching_driver',
-      paymentStatus: 'pending',
-    });
+    // Validate and apply promotion code if provided
+    let discountAmount = 0;
+    let promotionId: string | null = null;
 
-    const savedTrip = await this.tripsRepository.save(trip);
+    if (data.promotionCode) {
+      const promoResult = await this.promotionsService.validatePromoCode(
+        data.promotionCode,
+        userProfileId,
+        Number(data.subtotal),
+        data.vehicleType,
+      );
+      discountAmount = promoResult.discountAmount;
+      promotionId = promoResult.promotion.id;
+    }
+
+    const totalFare = Math.max(0, Number(data.subtotal) - discountAmount);
+
+    const savedTrip = await this.dataSource.transaction(async (manager) => {
+      const trip = manager.create(Trip, {
+        ...data,
+        tripNumber,
+        passengerId: userProfileId,
+        status: 'searching_driver',
+        paymentStatus: 'pending',
+        discountAmount,
+        promotionId,
+        totalFare,
+      });
+
+      const saved = await manager.save(Trip, trip);
+
+      if (promotionId) {
+        await this.promotionsService.applyPromoCode(
+          manager,
+          promotionId,
+          userProfileId,
+          saved.id,
+          discountAmount,
+        );
+      }
+
+      return saved;
+    });
 
     this.eventEmitter.emit('trip.created', {
       tripId: savedTrip.id,
@@ -126,6 +170,8 @@ export class TripsService {
 
       this.eventEmitter.emit('trip.status.changed', {
         tripId: updatedTrip.id,
+        passengerId: updatedTrip.passengerId,
+        driverUserProfileId: updatedTrip.driver?.userProfileId ?? null,
         oldStatus,
         newStatus: updatedTrip.status,
       });
@@ -164,6 +210,8 @@ export class TripsService {
 
     this.eventEmitter.emit('trip.status.changed', {
       tripId: updatedTrip.id,
+      passengerId: updatedTrip.passengerId,
+      driverUserProfileId: updatedTrip.driver?.userProfileId ?? null,
       oldStatus,
       newStatus: updatedTrip.status,
     });
@@ -196,6 +244,8 @@ export class TripsService {
 
     this.eventEmitter.emit('trip.status.changed', {
       tripId: updatedTrip.id,
+      passengerId: updatedTrip.passengerId,
+      driverUserProfileId: updatedTrip.driver?.userProfileId ?? null,
       oldStatus,
       newStatus: updatedTrip.status,
     });
@@ -233,15 +283,9 @@ export class TripsService {
 
     const updatedTrip = await this.tripsRepository.save(trip);
 
-    // Create earnings record
     await this.createDriverEarningRecord(updatedTrip);
 
-    // Update driver stats
-    await this.driverRepository.increment(
-      { id: driverId },
-      'totalRides',
-      1,
-    );
+    await this.driverRepository.increment({ id: driverId }, 'totalRides', 1);
     await this.driverRepository.increment(
       { id: driverId },
       'totalEarnings',
@@ -250,6 +294,8 @@ export class TripsService {
 
     this.eventEmitter.emit('trip.status.changed', {
       tripId: updatedTrip.id,
+      passengerId: updatedTrip.passengerId,
+      driverUserProfileId: updatedTrip.driver?.userProfileId ?? null,
       oldStatus,
       newStatus: updatedTrip.status,
     });
@@ -287,15 +333,14 @@ export class TripsService {
 
     const updatedTrip = await this.tripsRepository.save(trip);
 
-    // If a driver was assigned, make them available again
     if (trip.driverId) {
-      await this.driverRepository.update(trip.driverId, {
-        isAvailable: true,
-      });
+      await this.driverRepository.update(trip.driverId, { isAvailable: true });
     }
 
     this.eventEmitter.emit('trip.status.changed', {
       tripId: updatedTrip.id,
+      passengerId: updatedTrip.passengerId,
+      driverUserProfileId: updatedTrip.driver?.userProfileId ?? null,
       oldStatus,
       newStatus: updatedTrip.status,
     });
@@ -306,7 +351,8 @@ export class TripsService {
 
   private async createDriverEarningRecord(trip: Trip): Promise<DriverEarning> {
     const amount = Number(trip.totalFare);
-    const commissionAmount = Math.round((amount * DRIVER_COMMISSION_PERCENTAGE) / 100 * 100) / 100;
+    const commissionAmount =
+      Math.round((amount * DRIVER_COMMISSION_PERCENTAGE) / 100 * 100) / 100;
     const netEarnings = Math.round((amount - commissionAmount) * 100) / 100;
 
     const earning = this.driverEarningRepository.create({

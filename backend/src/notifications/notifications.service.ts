@@ -91,16 +91,66 @@ export class NotificationsService implements OnModuleInit {
     });
   }
 
-  private async sendTripCreatedNotification(data: any) {
-    // Implementation for trip created notification
+  private async sendTripCreatedNotification(data: {
+    tripId: string;
+    passengerId: string;
+    tripNumber: string;
+  }) {
+    if (!data.passengerId) return;
+    await this.createNotification({
+      userProfileId: data.passengerId,
+      title: 'Trip Requested',
+      body: `Your trip ${data.tripNumber} has been created. Finding a driver...`,
+      notificationType: 'trip_confirmed',
+      tripId: data.tripId,
+    });
   }
 
-  private async sendTripStatusNotification(data: any) {
-    // Implementation for trip status notification
+  private async sendTripStatusNotification(data: {
+    tripId: string;
+    passengerId?: string;
+    driverUserProfileId?: string;
+    newStatus: string;
+  }) {
+    const statusMessages: Record<string, { title: string; body: string; type: any }> = {
+      accepted:       { title: 'Driver Found',    body: 'A driver has accepted your trip.',       type: 'driver_assigned' },
+      driver_arrived: { title: 'Driver Arrived',  body: 'Your driver is at the pickup location.', type: 'driver_arrived'  },
+      in_progress:    { title: 'Trip Started',    body: 'Your trip is now in progress.',           type: 'trip_started'    },
+      completed:      { title: 'Trip Completed',  body: 'Your trip is complete. Please rate!',    type: 'trip_completed'  },
+      cancelled:      { title: 'Trip Cancelled',  body: 'Your trip has been cancelled.',           type: 'trip_cancelled'  },
+    };
+
+    const config = statusMessages[data.newStatus];
+    if (!config) return;
+
+    if (data.passengerId) {
+      await this.createNotification({
+        userProfileId: data.passengerId,
+        title: config.title,
+        body: config.body,
+        notificationType: config.type,
+        tripId: data.tripId,
+      });
+    }
+
+    if (['in_progress', 'completed', 'cancelled'].includes(data.newStatus) && data.driverUserProfileId) {
+      await this.createNotification({
+        userProfileId: data.driverUserProfileId,
+        title: config.title,
+        body: config.body,
+        notificationType: config.type,
+        tripId: data.tripId,
+      });
+    }
   }
 
-  private async sendPaymentNotification(data: any) {
-    // Implementation for payment notification
+  private async sendPaymentNotification(data: {
+    paymentId: string;
+    tripId?: string;
+    amount: number;
+    status?: string;
+  }) {
+    // Payment notifications are handled by the payments flow; no-op here.
   }
 }
 

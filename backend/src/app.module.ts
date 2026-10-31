@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './redis/redis.module';
 import { KafkaModule } from './kafka/kafka.module';
+import { KafkaConsumerModule } from './kafka/kafka-consumer.module';
 import { AuthModule } from './auth/auth.module';
 import { UserProfilesModule } from './user-profiles/user-profiles.module';
 import { TripsModule } from './trips/trips.module';
@@ -18,6 +19,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { LocationsModule } from './locations/locations.module';
 import { HealthModule } from './health/health.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { RatingsModule } from './ratings/ratings.module';
+import { PromotionsModule } from './promotions/promotions.module';
 
 @Module({
   imports: [
@@ -30,6 +33,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     DatabaseModule,
     RedisModule,
     KafkaModule,
+    KafkaConsumerModule,
     AuthModule,
     UserProfilesModule,
     TripsModule,
@@ -39,6 +43,8 @@ import { RealtimeModule } from './realtime/realtime.module';
     LocationsModule,
     HealthModule,
     RealtimeModule,
+    RatingsModule,
+    PromotionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
