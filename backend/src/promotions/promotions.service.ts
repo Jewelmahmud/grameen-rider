@@ -13,6 +13,23 @@ export interface ValidatePromoResult {
   discountAmount: number;
 }
 
+/** Who is asking, for promotions limited to GiLab employees or to new customers. */
+export interface PromoAudienceContext {
+  isEmployee: boolean;
+  completedTrips: number;
+}
+
+export function matchesAudience(promotion: Promotion, customer: PromoAudienceContext): boolean {
+  switch (promotion.audience ?? 'all') {
+    case 'employees':
+      return customer.isEmployee;
+    case 'new_users':
+      return customer.completedTrips === 0;
+    default:
+      return true;
+  }
+}
+
 @Injectable()
 export class PromotionsService {
   constructor(
@@ -27,6 +44,7 @@ export class PromotionsService {
     userProfileId: string,
     tripAmount: number,
     vehicleType?: string,
+    customer?: PromoAudienceContext,
   ): Promise<ValidatePromoResult> {
     const promotion = await this.promotionRepository.findOne({
       where: { code: code.toUpperCase(), isActive: true },
@@ -34,6 +52,14 @@ export class PromotionsService {
 
     if (!promotion) {
       throw new NotFoundException('Promotion code not found or is inactive');
+    }
+
+    if (customer && !matchesAudience(promotion, customer)) {
+      throw new BadRequestException(
+        promotion.audience === 'employees'
+          ? 'This promotion is for GiLab employees only'
+          : 'This promotion is for new customers only',
+      );
     }
 
     const now = new Date();
@@ -92,7 +118,12 @@ export class PromotionsService {
     await manager.save(PromotionUsage, usage);
   }
 
-  async findActivePromotions(vehicleType?: string): Promise<Promotion[]> {
+  async findActivePromotions(vehicleType?: string, customer?: PromoAudienceContext): Promise<Promotion[]> {
+    const promotions = await this.queryActivePromotions(vehicleType);
+    return customer ? promotions.filter((p) => matchesAudience(p, customer)) : promotions;
+  }
+
+  private async queryActivePromotions(vehicleType?: string): Promise<Promotion[]> {
     const now = new Date();
 
     const query = this.promotionRepository

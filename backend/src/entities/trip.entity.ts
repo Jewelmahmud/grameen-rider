@@ -17,6 +17,31 @@ import { Payment } from './payment.entity';
 import { Rating } from './rating.entity';
 import { Notification } from './notification.entity';
 
+export type ServiceType = 'ride' | 'rental';
+
+export type TripStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'searching_driver'
+  | 'accepted'
+  | 'driver_assigned'
+  | 'driver_arriving'
+  | 'driver_arrived'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
+  | 'no_driver_found'
+  | 'disputed';
+
+/** Statuses in which a driver is committed to the trip. */
+export const DRIVER_COMMITTED_STATUSES: TripStatus[] = [
+  'accepted',
+  'driver_assigned',
+  'driver_arriving',
+  'driver_arrived',
+  'in_progress',
+];
+
 @Entity('trips')
 export class Trip {
   @PrimaryGeneratedColumn('uuid')
@@ -144,7 +169,7 @@ export class Trip {
     default: 'pending',
   })
   @Index()
-  status: 'pending' | 'searching_driver' | 'accepted' | 'driver_assigned' | 'driver_arriving' | 'driver_arrived' | 'in_progress' | 'completed' | 'cancelled' | 'disputed';
+  status: TripStatus;
 
   @CreateDateColumn({ name: 'requested_at' })
   @Index()
@@ -193,6 +218,48 @@ export class Trip {
 
   @Column({ type: 'text', nullable: true, name: 'custom_rental_details' })
   customRentalDetails: string;
+
+  // ─── Service, pricing and dispatch ────────────────────────────────────────
+
+  @Column({ type: 'varchar', length: 10, default: 'ride', name: 'service_type' })
+  @Index()
+  serviceType: ServiceType;
+
+  /** Which rule priced the trip: a fixed route fare or the km-based rate. */
+  @Column({ type: 'varchar', length: 12, nullable: true, name: 'pricing_mode' })
+  pricingMode: 'distance' | 'route' | null;
+
+  /** Inputs, rule ids/versions and the full breakdown from the quote the trip was booked with. */
+  @Column({ type: 'jsonb', nullable: true, name: 'fare_snapshot' })
+  fareSnapshot: Record<string, unknown> | null;
+
+  @Column({ type: 'uuid', nullable: true, name: 'route_fare_id' })
+  routeFareId: string | null;
+
+  /** Rental stops between pickup and destination: [{address, latitude, longitude}]. */
+  @Column({ type: 'jsonb', nullable: true })
+  stops: { address: string; latitude: number; longitude: number }[] | null;
+
+  @Column({ type: 'boolean', default: false, name: 'round_trip' })
+  roundTrip: boolean;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'commission_amount' })
+  commissionAmount: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, name: 'employee_discount_amount' })
+  employeeDiscountAmount: number;
+
+  @Column({ type: 'boolean', default: false, name: 'is_employee_booking' })
+  isEmployeeBooking: boolean;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'dispatch_started_at' })
+  dispatchStartedAt: Date | null;
+
+  @Column({ type: 'integer', default: 0, name: 'dispatch_wave' })
+  dispatchWave: number;
+
+  @Column({ type: 'decimal', precision: 6, scale: 2, nullable: true, name: 'dispatch_radius_km' })
+  dispatchRadiusKm: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { StoredGilabRole } from '../common/auth/platform-roles';
 
 @Entity('user_profiles')
 export class UserProfile {
@@ -9,9 +10,10 @@ export class UserProfile {
   @Index()
   authUserId: string;
 
-  @Column({ type: 'varchar', length: 20, unique: true, name: 'phone_number' })
+  // Nullable: a profile first seen through a token may not have a phone yet (unique allows many NULLs).
+  @Column({ type: 'varchar', length: 20, unique: true, nullable: true, name: 'phone_number' })
   @Index()
-  phoneNumber: string;
+  phoneNumber: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   @Index()
@@ -59,6 +61,41 @@ export class UserProfile {
 
   @Column({ type: 'boolean', default: false, name: 'phone_verified' })
   phoneVerified: boolean;
+
+  // ─── GiLab identity mirror ────────────────────────────────────────────────
+
+  /** Last resolved Grameen Ride roles, for reporting and filters. Authorization always re-resolves. */
+  @Column({ type: 'text', array: true, default: '{customer}', name: 'platform_roles' })
+  platformRoles: string[];
+
+  /** GiLab role assignments ({name, isGlobal, companyId, isActive, expiresAt}). */
+  @Column({ type: 'jsonb', nullable: true, name: 'gilab_roles' })
+  gilabRoles: StoredGilabRole[] | null;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'gilab_roles_synced_at' })
+  gilabRolesSyncedAt: Date | null;
+
+  @Column({ type: 'boolean', default: false, name: 'is_employee' })
+  @Index()
+  isEmployee: boolean;
+
+  @Column({ type: 'boolean', default: false, name: 'is_staff' })
+  isStaff: boolean;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  designation: string | null;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'employee_synced_at' })
+  employeeSyncedAt: Date | null;
+
+  // ─── Platform account state ───────────────────────────────────────────────
+
+  @Column({ type: 'varchar', length: 20, default: 'active' })
+  @Index()
+  status: 'active' | 'blocked';
+
+  @Column({ type: 'text', nullable: true, name: 'blocked_reason' })
+  blockedReason: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

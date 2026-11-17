@@ -65,6 +65,12 @@ export class Vehicle {
   @Index()
   isVerified: boolean;
 
+  @Column({ type: 'boolean', default: true, name: 'serves_ride' })
+  servesRide: boolean;
+
+  @Column({ type: 'boolean', default: false, name: 'serves_rental' })
+  servesRental: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

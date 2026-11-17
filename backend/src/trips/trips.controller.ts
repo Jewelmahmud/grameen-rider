@@ -1,27 +1,25 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Param,
-  Request,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, ParseUUIDPipe, Request } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { TripsService } from './trips.service';
-import { DriversService } from '../drivers/drivers.service';
+import { DriverActorService } from './driver-actor.service';
 import { FareCalculationService } from './fare-calculation.service';
+import { DispatchService } from '../dispatch/dispatch.service';
+import { RequirePermission } from '../common/auth/permission.guard';
+import { CancelTripDto, CreateTripDto } from './dto/create-trip.dto';
 
 @Controller('trips')
 export class TripsController {
   constructor(
     private readonly tripsService: TripsService,
-    private readonly driversService: DriversService,
+    private readonly drivers: DriverActorService,
+    private readonly dispatch: DispatchService,
     private readonly fareCalculationService: FareCalculationService,
   ) {}
 
+  /**
+   * @deprecated Use POST /pricing/quote. Kept for one app release; uses the old built-in rates,
+   * not the admin-managed ones.
+   */
   @Get('fare-estimate')
   estimateFare(
     @Body()
@@ -43,64 +41,67 @@ export class TripsController {
   }
 
   @Post()
-  async createTrip(@Request() req: ExpressRequest, @Body() createTripDto: any) {
-    return this.tripsService.createTrip(createTripDto, req.userProfile.id);
+  @RequirePermission('trips.book')
+  createTrip(@Request() req: ExpressRequest, @Body() dto: CreateTripDto) {
+    return this.tripsService.createTrip(dto, req.userProfile);
   }
 
+  /** The caller's trips as a passenger. Drivers use GET /drivers/me/trips. */
   @Get()
-  async getMyTrips(@Request() req: ExpressRequest) {
+  getMyTrips(@Request() req: ExpressRequest) {
     return this.tripsService.findByPassengerId(req.userProfile.id);
   }
 
   @Get(':id')
-  async getTrip(@Param('id') id: string) {
-    return this.tripsService.findById(id);
+  async getTrip(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tripsService.findForActor(id, await this.drivers.actor(req));
   }
 
+  @Put(':id/offer/accept')
+  @RequirePermission('trips.drive')
+  async acceptOffer(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.dispatch.respond(id, await this.drivers.requireDriverId(req), true);
+  }
+
+  @Put(':id/offer/decline')
+  @RequirePermission('trips.drive')
+  async declineOffer(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    await this.dispatch.respond(id, await this.drivers.requireDriverId(req), false);
+    return { success: true };
+  }
+
+  /** @deprecated Same as PUT /trips/:id/offer/accept; only works for the driver the trip is offered to. */
   @Put(':id/accept')
-  async acceptTrip(@Param('id') id: string, @Request() req: ExpressRequest) {
-    const driver = await this.driversService.getDriverProfile(req.userProfile.id);
-    if (!driver) {
-      throw new Error('Driver profile not found');
-    }
-    return this.tripsService.acceptTrip(id, driver.id);
+  @RequirePermission('trips.drive')
+  async acceptTrip(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.dispatch.respond(id, await this.drivers.requireDriverId(req), true);
   }
 
   @Put(':id/arrive')
-  async arriveAtPickup(@Param('id') id: string, @Request() req: ExpressRequest) {
-    const driver = await this.driversService.getDriverProfile(req.userProfile.id);
-    if (!driver) {
-      throw new Error('Driver profile not found');
-    }
-    return this.tripsService.arriveAtPickup(id, driver.id);
+  @RequirePermission('trips.drive')
+  async arriveAtPickup(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tripsService.arriveAtPickup(id, await this.drivers.requireDriverId(req));
   }
 
   @Put(':id/start')
-  async startTrip(@Param('id') id: string, @Request() req: ExpressRequest) {
-    const driver = await this.driversService.getDriverProfile(req.userProfile.id);
-    if (!driver) {
-      throw new Error('Driver profile not found');
-    }
-    return this.tripsService.startTrip(id, driver.id);
+  @RequirePermission('trips.drive')
+  async startTrip(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tripsService.startTrip(id, await this.drivers.requireDriverId(req));
   }
 
   @Put(':id/complete')
-  async completeTrip(@Param('id') id: string, @Request() req: ExpressRequest) {
-    const driver = await this.driversService.getDriverProfile(req.userProfile.id);
-    if (!driver) {
-      throw new Error('Driver profile not found');
-    }
-    return this.tripsService.completeTrip(id, driver.id);
+  @RequirePermission('trips.drive')
+  async completeTrip(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tripsService.completeTrip(id, await this.drivers.requireDriverId(req));
   }
 
+  /** Passenger: cancels the trip. Assigned driver: gives it back to dispatch. */
   @Put(':id/cancel')
   async cancelTrip(
-    @Param('id') id: string,
-    @Body() body: { cancellationReason?: string; cancelledBy?: 'passenger' | 'driver' | 'system' },
+    @Request() req: ExpressRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CancelTripDto,
   ) {
-    return this.tripsService.cancelTrip(id, {
-      cancellationReason: body.cancellationReason,
-      cancelledBy: body.cancelledBy ?? 'passenger',
-    });
+    return this.tripsService.cancelTrip(id, await this.drivers.actor(req), body.cancellationReason);
   }
 }

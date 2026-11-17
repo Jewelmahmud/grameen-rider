@@ -52,6 +52,10 @@ export class Promotion {
   @Index()
   isActive: boolean;
 
+  /** Who can use it: everyone, GiLab employees only, or customers with no completed trip yet. */
+  @Column({ type: 'varchar', length: 15, default: 'all' })
+  audience: 'all' | 'employees' | 'new_users';
+
   @Column({ type: 'jsonb', nullable: true, name: 'applicable_vehicle_types' })
   applicableVehicleTypes: string[];
 

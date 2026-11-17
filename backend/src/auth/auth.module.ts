@@ -1,33 +1,49 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { AuthCircuitBreakerService } from './auth-circuit-breaker.service';
+import { TokenVerificationService } from './token-verification.service';
+import { AuthContextService } from './auth-context.service';
 import { AuthMiddleware } from './auth.middleware';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PermissionGuard } from '../common/auth/permission.guard';
+
+/** Routes reachable without a token. Everything else goes through AuthMiddleware. */
+const PUBLIC_ROUTES = [
+  'health',
+  'health/(.*)',
+  'auth/login',
+  'auth/otp/send',
+  'auth/register',
+  'auth/verify-phone',
+  'auth/resend-verification',
+  'auth/refresh',
+  'config/public',
+  'payments/webhook/(.*)',
+];
 
 @Module({
   imports: [ConfigModule, UserProfilesModule],
-  providers: [AuthCircuitBreakerService, AuthService],
+  providers: [
+    TokenVerificationService,
+    AuthContextService,
+    AuthService,
+    { provide: APP_GUARD, useClass: PermissionGuard },
+  ],
   controllers: [AuthController],
-  exports: [AuthCircuitBreakerService, AuthService],
+  exports: [TokenVerificationService, AuthContextService, AuthService],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Apply auth middleware globally except for health and public endpoints
     consumer
       .apply(AuthMiddleware)
       .exclude(
-        'health',
-        'health/(.*)',
-        'api/health',
-        'api/health/(.*)',
-        'auth/login',
-        'auth/register',
-        'api/auth/login',
-        'api/auth/register',
+        ...PUBLIC_ROUTES.flatMap((path) => [
+          { path, method: RequestMethod.ALL },
+          { path: `api/${path}`, method: RequestMethod.ALL },
+        ]),
       )
       .forRoutes('*');
   }
 }
-

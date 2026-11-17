@@ -6,11 +6,15 @@ import {
   Body,
   Request,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { DriversService } from './drivers.service';
+import { RequirePermission } from '../common/auth/permission.guard';
 
+/** Only GiLab users with the grameen_ride_driver role. */
 @Controller('drivers')
+@RequirePermission('trips.drive')
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
 
@@ -67,7 +71,13 @@ export class DriversController {
     if (!driver) {
       throw new NotFoundException('Driver profile not found');
     }
-    await this.driversService.updateAvailability(driver.id, body.isOnline, body.isAvailable);
+    if (body.isOnline && driver.isSuspended) {
+      throw new ForbiddenException({ code: 'DRIVER_SUSPENDED', message: driver.suspendedReason || 'Your account is suspended' });
+    }
+    if (body.isOnline && driver.verificationStatus !== 'approved') {
+      throw new ForbiddenException({ code: 'DRIVER_NOT_APPROVED', message: 'Your documents are still being checked' });
+    }
+    await this.driversService.updateAvailability(driver.id, Boolean(body.isOnline), Boolean(body.isOnline && body.isAvailable));
     return { success: true };
   }
 }

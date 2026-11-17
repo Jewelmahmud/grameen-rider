@@ -1,123 +1,176 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { UserProfile } from '../entities/user-profile.entity';
-import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import { GilabClient } from '../auth/gilab.client';
+import {
+  PlatformRole,
+  StoredGilabRole,
+  toStoredGilabRoles,
+} from '../common/auth/platform-roles';
 
-interface AuthServerUser {
-  id: string; // UUID
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+/** The `user` object GiLab returns from login / registration / `GET /oauth/me`. */
+export interface GilabUser {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  avatar?: string | null;
   emailVerified?: boolean;
   phoneVerified?: boolean;
-  status?: string;
+  isStaff?: boolean;
+  /** Only present on login responses. */
+  isEmployee?: boolean;
+  designation?: string | null;
+  roles?: unknown[];
 }
+
+/** Role details are re-read from GiLab at most this often (role changes apply within 15 minutes). */
+export const GILAB_ROLES_MAX_AGE_MS = 15 * 60 * 1000;
+const LAST_ACTIVE_WRITE_INTERVAL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class UserProfilesService {
+  private readonly logger = new Logger(UserProfilesService.name);
+
   constructor(
     @InjectRepository(UserProfile)
     private userProfileRepository: Repository<UserProfile>,
-    @Inject(ConfigService) private configService: ConfigService,
+    private readonly gilab: GilabClient,
   ) {}
 
+  /**
+   * Finds the profile for a GiLab user, creating it on first sight. When no user data is given
+   * (a token we haven't seen through our login proxy), the profile is filled from `GET /oauth/me`.
+   */
   async getOrCreateUserProfile(
     authUserId: string,
-    userData?: AuthServerUser,
+    userData?: GilabUser | null,
+    accessToken?: string,
   ): Promise<UserProfile> {
-    // Check if profile exists
-    let profile = await this.userProfileRepository.findOne({
-      where: { authUserId },
-    });
+    let profile = await this.userProfileRepository.findOne({ where: { authUserId } });
 
     if (!profile) {
-      // Fetch user data from Auth Server if not provided
-      if (!userData) {
-        userData = await this.fetchUserFromAuthServer(authUserId);
-      }
-
-      // Create new profile
+      if (!userData && accessToken) userData = await this.fetchMe(accessToken);
       profile = this.userProfileRepository.create({
         authUserId,
-        phoneNumber: userData?.phone || '',
-        email: userData?.email || null,
-        firstName: userData?.firstName || null,
-        lastName: userData?.lastName || null,
-        emailVerified: userData?.emailVerified || false,
-        phoneVerified: userData?.phoneVerified || false,
+        phoneNumber: null,
         userType: 'passenger',
+        platformRoles: ['customer'],
       });
-
-      profile = await this.userProfileRepository.save(profile);
-    } else {
-      // Update last_active_at
-      profile.lastActiveAt = new Date();
-      await this.userProfileRepository.save(profile);
-
-      // Sync profile data if user data provided
-      if (userData && (userData.email || userData.phone || userData.firstName || userData.lastName)) {
-        profile.email = userData.email || profile.email;
-        profile.phoneNumber = userData.phone || profile.phoneNumber;
-        profile.firstName = userData.firstName || profile.firstName;
-        profile.lastName = userData.lastName || profile.lastName;
-        profile.emailVerified = userData.emailVerified ?? profile.emailVerified;
-        profile.phoneVerified = userData.phoneVerified ?? profile.phoneVerified;
-        await this.userProfileRepository.save(profile);
-      }
+      this.applyIdentity(profile, userData);
+      if (userData?.roles) this.applyRoles(profile, userData.roles);
+      await this.ensurePhoneIsFree(profile);
+      return this.userProfileRepository.save(profile);
     }
 
+    let dirty = false;
+    if (userData) {
+      this.applyIdentity(profile, userData);
+      if (userData.roles) this.applyRoles(profile, userData.roles);
+      await this.ensurePhoneIsFree(profile);
+      dirty = true;
+    }
+    if (!profile.lastActiveAt || Date.now() - profile.lastActiveAt.getTime() > LAST_ACTIVE_WRITE_INTERVAL_MS) {
+      profile.lastActiveAt = new Date();
+      dirty = true;
+    }
+    return dirty ? this.userProfileRepository.save(profile) : profile;
+  }
+
+  /**
+   * Stores what a successful GiLab login or registration returned, including the employee fields
+   * that only login responses carry. Registration responses wrap the user in `data`.
+   */
+  async syncUserProfileFromAuthResponse(authResponse: any): Promise<UserProfile> {
+    const user: GilabUser | undefined = authResponse?.user ?? authResponse?.data;
+    if (!user?.id) throw new Error('Invalid auth response: missing user data');
+
+    const profile = await this.getOrCreateUserProfile(user.id, user);
+    if (typeof user.isEmployee === 'boolean') {
+      profile.isEmployee = user.isEmployee;
+      profile.designation = user.isEmployee ? user.designation ?? null : null;
+      profile.employeeSyncedAt = new Date();
+      return this.userProfileRepository.save(profile);
+    }
     return profile;
   }
 
-  async syncUserProfileFromAuthResponse(authResponse: any): Promise<UserProfile> {
-    const user = authResponse.user;
-    if (!user || !user.id) {
-      throw new Error('Invalid auth response: missing user data');
-    }
+  /** Re-reads role details from GiLab when they are older than 15 minutes. Keeps the old copy if GiLab fails. */
+  async ensureFreshGilabRoles(profile: UserProfile, accessToken: string): Promise<StoredGilabRole[] | null> {
+    const age = profile.gilabRolesSyncedAt ? Date.now() - profile.gilabRolesSyncedAt.getTime() : Infinity;
+    if (profile.gilabRoles && age < GILAB_ROLES_MAX_AGE_MS) return profile.gilabRoles;
 
-    return this.getOrCreateUserProfile(user.id, user);
+    const me = await this.fetchMe(accessToken);
+    if (!me?.roles) return profile.gilabRoles;
+    this.applyRoles(profile, me.roles);
+    await this.userProfileRepository.update(profile.id, {
+      gilabRoles: profile.gilabRoles,
+      gilabRolesSyncedAt: profile.gilabRolesSyncedAt,
+    });
+    return profile.gilabRoles;
   }
 
-  private async fetchUserFromAuthServer(authUserId: string): Promise<AuthServerUser | null> {
-    const authServerUrl = this.configService.get('AUTH_SERVER_URL');
-    const getUserEndpoint = this.configService.get('AUTH_SERVER_GET_USER_ENDPOINT');
-
-    if (!authServerUrl || !getUserEndpoint) {
-      return null;
-    }
-
-    try {
-      const response = await axios.get(`${authServerUrl}${getUserEndpoint}/${authUserId}`, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 5000,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch user from Auth Server:', error);
-      return null;
-    }
+  async recordPlatformRoles(profile: UserProfile, roles: PlatformRole[]): Promise<void> {
+    const current = [...(profile.platformRoles ?? [])].sort().join(',');
+    if (current === [...roles].sort().join(',')) return;
+    profile.platformRoles = roles;
+    await this.userProfileRepository.update(profile.id, { platformRoles: roles });
   }
 
   async findByAuthUserId(authUserId: string): Promise<UserProfile | null> {
-    return this.userProfileRepository.findOne({
-      where: { authUserId },
-    });
+    return this.userProfileRepository.findOne({ where: { authUserId } });
   }
 
   async findById(id: string): Promise<UserProfile | null> {
-    return this.userProfileRepository.findOne({
-      where: { id },
-    });
+    return this.userProfileRepository.findOne({ where: { id } });
   }
 
   async updateFcmToken(authUserId: string, fcmToken: string): Promise<void> {
-    await this.userProfileRepository.update(
-      { authUserId },
-      { fcmToken, updatedAt: new Date() },
-    );
+    await this.userProfileRepository.update({ authUserId }, { fcmToken, updatedAt: new Date() });
+  }
+
+  async updateLanguage(profileId: string, languagePreference: 'bn' | 'en'): Promise<void> {
+    await this.userProfileRepository.update(profileId, { languagePreference });
+  }
+
+  private applyIdentity(profile: UserProfile, user?: GilabUser | null) {
+    if (!user) return;
+    if (user.email) profile.email = user.email;
+    if (user.phone) profile.phoneNumber = user.phone;
+    if (user.firstName) profile.firstName = user.firstName;
+    if (user.lastName) profile.lastName = user.lastName;
+    if (user.avatar) profile.profileImageUrl = user.avatar;
+    if (typeof user.emailVerified === 'boolean') profile.emailVerified = user.emailVerified;
+    if (typeof user.phoneVerified === 'boolean') profile.phoneVerified = user.phoneVerified;
+    if (typeof user.isStaff === 'boolean') profile.isStaff = user.isStaff;
+  }
+
+  private applyRoles(profile: UserProfile, roles: unknown[]) {
+    profile.gilabRoles = toStoredGilabRoles(roles);
+    profile.gilabRolesSyncedAt = new Date();
+  }
+
+  /** phone_number is unique; never let a stale profile's number block a sync. */
+  private async ensurePhoneIsFree(profile: UserProfile) {
+    if (!profile.phoneNumber) return;
+    const holder = await this.userProfileRepository.findOne({
+      where: { phoneNumber: profile.phoneNumber, ...(profile.id ? { id: Not(profile.id) } : {}) },
+    });
+    if (holder) {
+      this.logger.warn(`Phone already on profile ${holder.id}; not copying it to auth user ${profile.authUserId}`);
+      profile.phoneNumber = profile.id ? (await this.findById(profile.id))?.phoneNumber ?? null : null;
+    }
+  }
+
+  private async fetchMe(accessToken: string): Promise<GilabUser | null> {
+    try {
+      const response = await this.gilab.call<{ success: boolean; data: GilabUser }>('me', { bearer: accessToken });
+      return response?.data ?? null;
+    } catch (error) {
+      this.logger.warn(`GiLab /oauth/me failed: ${error instanceof Error ? error.message : error}`);
+      return null;
+    }
   }
 }
-

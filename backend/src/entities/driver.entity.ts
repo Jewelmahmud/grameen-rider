@@ -76,6 +76,17 @@ export class Driver {
   @Index()
   verificationStatus: 'pending' | 'approved' | 'rejected';
 
+  @Column({ type: 'boolean', default: false, name: 'is_suspended' })
+  @Index()
+  isSuspended: boolean;
+
+  @Column({ type: 'text', nullable: true, name: 'suspended_reason' })
+  suspendedReason: string | null;
+
+  /** When the driver's last trip ended; used for the "idle time" part of fair-share matching. */
+  @Column({ type: 'timestamp', nullable: true, name: 'last_trip_ended_at' })
+  lastTripEndedAt: Date | null;
+
   @Column({ type: 'varchar', length: 50, nullable: true, name: 'bank_account_number' })
   bankAccountNumber: string;
 

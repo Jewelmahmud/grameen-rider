@@ -1,87 +1,95 @@
-import { Injectable, UnauthorizedException, BadGatewayException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance } from 'axios';
+import { GilabClient, normaliseBdPhone } from './gilab.client';
 import { UserProfilesService } from '../user-profiles/user-profiles.service';
+import {
+  LoginDto,
+  RegisterDto,
+  ResendVerificationDto,
+  SendOtpDto,
+  VerifyPhoneDto,
+} from './dto/auth.dto';
 
-interface AuthLoginPayload {
-  phone?: string;
-  email?: string;
-  password: string;
-  mfaCode?: string;
-}
-
-interface AuthRegistrationPayload {
-  roleName: 'grameen_ride_driver' | 'customer';
-  phone: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  email?: string;
-}
-
+/**
+ * Proxies GiLab login / registration so the backend sees every successful login and can store
+ * the employee fields (`isEmployee`, `designation`) and role details that tokens don't carry.
+ */
 @Injectable()
 export class AuthService {
-  private readonly axiosInstance: AxiosInstance;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly configService: ConfigService,
     private readonly userProfilesService: UserProfilesService,
-  ) {
-    this.axiosInstance = axios.create({
-      timeout: parseInt(this.configService.get('AUTH_SERVER_TIMEOUT') || '5000'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    private readonly gilab: GilabClient,
+  ) {}
+
+  async login(payload: LoginDto, endUserIp?: string) {
+    if (!payload.phone && !payload.email) {
+      throw new BadRequestException({ code: 'MISSING_CREDENTIALS', message: 'Phone or email is required' });
+    }
+    if (!payload.password && !payload.mfaCode) {
+      throw new BadRequestException({ code: 'PASSWORD_REQUIRED', message: 'Password or OTP is required' });
+    }
+    const body = { ...payload, ...(payload.phone ? { phone: normaliseBdPhone(payload.phone) } : {}) };
+    const data = await this.gilab.call('login', { body, endUserIp });
+    await this.syncProfile(data);
+    return data;
+  }
+
+  async sendOtp(payload: SendOtpDto, endUserIp?: string) {
+    return this.gilab.call('sendOtp', {
+      body: { phone: normaliseBdPhone(payload.phone), purpose: payload.purpose ?? 'login' },
+      endUserIp,
     });
   }
 
-  async login(payload: AuthLoginPayload) {
-    const loginUrl =
-      this.configService.get('AUTH_SERVER_URL') ||
-      'https://auth.grameenbazaar.com/oauth/login';
-
-    try {
-      const { data } = await this.axiosInstance.post(loginUrl, payload);
-
-      if (data?.success && data?.user?.id) {
-        await this.userProfilesService.syncUserProfileFromAuthResponse(data);
-      }
-
-      return data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        if (error.response.status === 401) {
-          throw new UnauthorizedException(error.response.data);
-        }
-        throw new BadGatewayException(error.response.data);
-      }
-
-      throw new BadGatewayException('Auth server login request failed');
+  async register(payload: RegisterDto, endUserIp?: string) {
+    const companyId = this.configService.get<string>('GRAMEEN_RIDE_COMPANY_ID');
+    if (!companyId) {
+      this.logger.warn('GRAMEEN_RIDE_COMPANY_ID is not set; GiLab registration will reject the request');
     }
+    const data = await this.gilab.call('register', {
+      body: { ...payload, phone: normaliseBdPhone(payload.phone), ...(companyId ? { companyId } : {}) },
+      endUserIp,
+    });
+    await this.syncProfile(data);
+    return data;
   }
 
-  async register(payload: AuthRegistrationPayload) {
-    const registrationUrl =
-      this.configService.get('AUTH_SERVER_REGISTRATION_URL') ||
-      'https://auth.grameenbazaar.com/api/v1/registration';
+  async verifyPhone(payload: VerifyPhoneDto, endUserIp?: string) {
+    return this.gilab.call('verifyPhone', {
+      body: { phone: normaliseBdPhone(payload.phone), code: payload.code },
+      endUserIp,
+    });
+  }
 
+  async resendVerification(payload: ResendVerificationDto, endUserIp?: string) {
+    return this.gilab.call('resendVerification', {
+      body: { ...payload, ...(payload.phone ? { phone: normaliseBdPhone(payload.phone) } : {}) },
+      endUserIp,
+    });
+  }
+
+  async refresh(refreshToken: string) {
+    return this.gilab.call('refresh', { body: { refreshToken } });
+  }
+
+  async logout(accessToken: string, refreshToken?: string) {
+    return this.gilab.call('logout', {
+      bearer: accessToken,
+      body: refreshToken ? { refreshToken } : {},
+    });
+  }
+
+  private async syncProfile(data: any) {
+    const user = data?.user ?? data?.data;
+    if (!data?.success || !user?.id) return;
     try {
-      const { data } = await this.axiosInstance.post(registrationUrl, payload);
-
-      if (data?.success && data?.user?.id) {
-        await this.userProfilesService.syncUserProfileFromAuthResponse(data);
-      }
-
-      return data;
+      await this.userProfilesService.syncUserProfileFromAuthResponse(data);
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        if (error.response.status === 401) {
-          throw new UnauthorizedException(error.response.data);
-        }
-        throw new BadGatewayException(error.response.data);
-      }
-
-      throw new BadGatewayException('Auth server registration request failed');
+      // Login must not fail because our own profile copy couldn't be written.
+      this.logger.error(`Profile sync failed for ${user.id}`, error instanceof Error ? error.stack : error);
     }
   }
 }

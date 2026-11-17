@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -23,6 +22,11 @@ import { RatingsModule } from './ratings/ratings.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { SupportModule } from './support/support.module';
 import { AdminModule } from './admin/admin.module';
+import { GilabModule } from './auth/gilab.module';
+import { SettingsModule } from './settings/settings.module';
+import { AuditModule } from './audit/audit.module';
+import { PerksModule } from './perks/perks.module';
+import { PricingModule } from './pricing/pricing.module';
 
 @Module({
   imports: [
@@ -32,8 +36,22 @@ import { AdminModule } from './admin/admin.module';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    // Dispatch jobs (offers, timeouts) run on the same Redis.
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        url: config.get<string>('REDIS_QUEUE_URL') || config.get<string>('REDIS_URL') || 'redis://localhost:6379',
+        redis: { password: config.get<string>('REDIS_PASSWORD') || undefined },
+        prefix: 'grameen-ride',
+      }),
+    }),
     DatabaseModule,
     RedisModule,
+    GilabModule,
+    SettingsModule,
+    AuditModule,
+    PerksModule,
+    PricingModule,
     KafkaModule,
     KafkaConsumerModule,
     AuthModule,

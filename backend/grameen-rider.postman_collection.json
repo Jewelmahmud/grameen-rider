@@ -1,0 +1,1750 @@
+{
+  "info": {
+    "name": "Grameen Rider API",
+    "description": "Complete API collection for Grameen Rider — ridesharing & vehicle rental backend for rural Bangladesh.\n\nBase URL: {{baseUrl}}/api\nAuth: Bearer token in Authorization header (set {{token}} after login).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "grameen-rider-v1"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5006",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tripId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "quoteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "zoneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "zoneId2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "routeFareId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vehicleId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleName\": \"customer\",\n  \"phone\": \"01700000001\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Rahim\",\n  \"lastName\": \"Uddin\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Driver",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleName\": \"grameen_ride_driver\",\n  \"phone\": \"01700000002\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Karim\",\n  \"lastName\": \"Mia\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register: other roles are refused (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleName\": \"admin\",\n  \"phone\": \"01700000003\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"X\",\n  \"lastName\": \"Y\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Phone",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/verify-phone",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01700000001\",\n  \"code\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/resend-verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"phone\",\n  \"phone\": \"01700000001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.tokens && json.tokens.accessToken) {",
+                  "  pm.collectionVariables.set('token', json.tokens.accessToken);",
+                  "  if (json.tokens.refreshToken) pm.collectionVariables.set('refreshToken', json.tokens.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01700000001\",\n  \"password\": \"Password123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Send Login OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/otp/send",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01700000001\",\n  \"purpose\": \"login\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (OTP)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.tokens && json.tokens.accessToken) {",
+                  "  pm.collectionVariables.set('token', json.tokens.accessToken);",
+                  "  if (json.tokens.refreshToken) pm.collectionVariables.set('refreshToken', json.tokens.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01700000001\",\n  \"mfaCode\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.tokens) pm.collectionVariables.set('token', json.tokens.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/logout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Config",
+      "item": [
+        {
+          "name": "Public Config",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/config/public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pricing",
+      "item": [
+        {
+          "name": "Quote Ride (all vehicle types)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.quotes && json.quotes.length) pm.collectionVariables.set('quoteId', json.quotes[0].quoteId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/pricing/quote",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceType\": \"ride\",\n  \"pickup\": {\n    \"address\": \"Mirpur 10, Dhaka\",\n    \"latitude\": 23.8041,\n    \"longitude\": 90.3654\n  },\n  \"dropoff\": {\n    \"address\": \"Gulshan 2, Dhaka\",\n    \"latitude\": 23.7925,\n    \"longitude\": 90.4078\n  },\n  \"distanceKm\": 6.2,\n  \"durationMinutes\": 25\n}"
+            }
+          }
+        },
+        {
+          "name": "Quote Ride (one vehicle type)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.quotes && json.quotes.length) pm.collectionVariables.set('quoteId', json.quotes[0].quoteId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/pricing/quote",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceType\": \"ride\",\n  \"vehicleType\": \"motorcycle\",\n  \"pickup\": {\n    \"address\": \"Mirpur 10, Dhaka\",\n    \"latitude\": 23.8041,\n    \"longitude\": 90.3654\n  },\n  \"dropoff\": {\n    \"address\": \"Gulshan 2, Dhaka\",\n    \"latitude\": 23.7925,\n    \"longitude\": 90.4078\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Quote Rental (round trip)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.quotes && json.quotes.length) pm.collectionVariables.set('quoteId', json.quotes[0].quoteId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/pricing/quote",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceType\": \"rental\",\n  \"vehicleType\": \"car\",\n  \"pickup\": {\n    \"address\": \"Gazipur Chowrasta\",\n    \"latitude\": 23.9999,\n    \"longitude\": 90.4203\n  },\n  \"dropoff\": {\n    \"address\": \"Bhawal National Park\",\n    \"latitude\": 24.1039,\n    \"longitude\": 90.4007\n  },\n  \"stops\": [],\n  \"roundTrip\": true,\n  \"scheduledAt\": \"2026-12-01T03:00:00.000Z\",\n  \"passengerCount\": 4\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/user-profiles/me"
+          }
+        },
+        {
+          "name": "Update FCM Token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/user-profiles/fcm-token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"fcm_device_token_here\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Set Language",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/user-profiles/language",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"languagePreference\": \"bn\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        {
+          "name": "Estimate Fare",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/trips/fare-estimate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleType\": \"cng\",\n  \"distanceKm\": 5,\n  \"durationMinutes\": 15,\n  \"rentalType\": \"single\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Trip from Quote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('tripId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/trips",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"paymentMethod\": \"cash\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Trip with Promo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('tripId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/trips",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"paymentMethod\": \"cash\",\n  \"promotionCode\": \"WELCOME50\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Trip: client fares are rejected (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/trips",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"paymentMethod\": \"cash\",\n  \"totalFare\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Trips",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips"
+          }
+        },
+        {
+          "name": "Get Trip by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}"
+          }
+        },
+        {
+          "name": "Accept Offer (driver)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/offer/accept"
+          }
+        },
+        {
+          "name": "Decline Offer (driver)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/offer/decline"
+          }
+        },
+        {
+          "name": "Accept Trip (deprecated: use Accept Offer)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/accept"
+          }
+        },
+        {
+          "name": "Driver Arrived",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/arrive"
+          }
+        },
+        {
+          "name": "Start Trip (Driver)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/start"
+          }
+        },
+        {
+          "name": "Complete Trip (Driver)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/complete"
+          }
+        },
+        {
+          "name": "Cancel Trip",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Plans changed\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Rate Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/rate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"review\": \"Very smooth ride, driver was polite.\",\n  \"tags\": [\"punctual\", \"clean_vehicle\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Trips without token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/trips"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Drivers",
+      "item": [
+        {
+          "name": "Create Driver Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/drivers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licenseNumber\": \"BDLIC-12345\",\n  \"licenseExpiryDate\": \"2027-12-31\",\n  \"vehicleRegistrationNumber\": \"DHA-CNG-5678\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Driver Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/me"
+          }
+        },
+        {
+          "name": "Get My Earnings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/me/earnings"
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/drivers/location",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 23.8041,\n  \"longitude\": 90.3654\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Availability",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/drivers/availability",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isOnline\": true,\n  \"isAvailable\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Driver Ratings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/drivers/{{driverId}}/ratings?page=1&limit=20",
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Current Offer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/me/offers/current"
+          }
+        },
+        {
+          "name": "My Trips (upcoming)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/me/trips?status=upcoming"
+          }
+        },
+        {
+          "name": "My Trips (active)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/me/trips?status=active"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "Add Vehicle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleType\": \"cng\",\n  \"licensePlate\": \"DHA-CNG-001\",\n  \"seatingCapacity\": 3,\n  \"make\": \"Bajaj\",\n  \"model\": \"RE\",\n  \"year\": 2021,\n  \"color\": \"Yellow\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Vehicles",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles"
+          }
+        },
+        {
+          "name": "Get Vehicle by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles/:vehicleId"
+          }
+        },
+        {
+          "name": "Update Vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vehicles/:vehicleId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"Green\",\n  \"seatingCapacity\": 4\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Vehicle (Soft)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/vehicles/:vehicleId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotions",
+      "item": [
+        {
+          "name": "Get Active Promotions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/promotions/active?vehicleType=cng",
+              "query": [
+                {
+                  "key": "vehicleType",
+                  "value": "cng",
+                  "description": "Optional filter"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validate Promo Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/promotions/validate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SAVE10\",\n  \"tripAmount\": 200,\n  \"vehicleType\": \"cng\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/notifications/:notificationId/read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locations (Favorites)",
+      "item": [
+        {
+          "name": "Get Favorite Locations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/locations/favorites"
+          }
+        },
+        {
+          "name": "Add Favorite Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/locations/favorites",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Home\",\n  \"address\": \"House 12, Road 5, Mirpur, Dhaka\",\n  \"latitude\": 23.8041,\n  \"longitude\": 90.3654,\n  \"locationType\": \"home\",\n  \"isDefault\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Favorite Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/locations/favorites/:locationId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Home (Updated)\",\n  \"address\": \"House 15, Road 5, Mirpur, Dhaka\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Favorite Location",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/locations/favorites/:locationId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support",
+      "item": [
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/support/tickets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Driver did not arrive\",\n  \"description\": \"I booked a CNG but the driver never showed up and the trip was not cancelled.\",\n  \"category\": \"trip_issue\",\n  \"tripId\": \"{{tripId}}\",\n  \"priority\": \"high\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Tickets",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/support/tickets"
+          }
+        },
+        {
+          "name": "Send Message on Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/support/tickets/:ticketId/messages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"The driver called and said he could not find my location. I waited 20 minutes.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Ticket Messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/support/tickets/:ticketId/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"amount\": 150,\n  \"paymentMethod\": \"bkash\",\n  \"currency\": \"BDT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/payments/:paymentId"
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/:paymentId/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"bkash_txn_123456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Requires admin role. Set Authorization header with an admin user's token.",
+      "item": [
+        {
+          "name": "Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/overview"
+          }
+        },
+        {
+          "name": "Stats (deprecated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/stats"
+          }
+        },
+        {
+          "name": "Customer cannot open the console (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/overview"
+          }
+        },
+        {
+          "name": "List Ride Rates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/fares/rates?service=ride"
+          }
+        },
+        {
+          "name": "List Rental Rates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/fares/rates?service=rental"
+          }
+        },
+        {
+          "name": "Save Ride Rate (motorcycle)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/fares/rates/ride/motorcycle",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseFare\": 40,\n  \"baseKm\": 2,\n  \"perKm\": 14,\n  \"perMinute\": 0.5,\n  \"minimumFare\": 50,\n  \"extraPassengerFare\": 0,\n  \"commissionPct\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Save Rental Rate (car)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/fares/rates/rental/car",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseFare\": 300,\n  \"baseKm\": 10,\n  \"perKm\": 25,\n  \"perMinute\": 0,\n  \"minimumFare\": 300,\n  \"returnLegFactor\": 0.6\n}"
+            }
+          }
+        },
+        {
+          "name": "Rate History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/fares/rates/ride/motorcycle/history"
+          }
+        },
+        {
+          "name": "Fare Simulator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/fares/simulate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceType\": \"ride\",\n  \"pickup\": {\n    \"address\": \"Shahbag\",\n    \"latitude\": 23.7385,\n    \"longitude\": 90.3958\n  },\n  \"dropoff\": {\n    \"address\": \"Gazipur\",\n    \"latitude\": 23.9999,\n    \"longitude\": 90.4203\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List Zones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/zones"
+          }
+        },
+        {
+          "name": "Create Zone (Shahbag)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('zoneId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/zones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameBn\": \"শাহবাগ\",\n  \"nameEn\": \"Shahbag\",\n  \"centerLatitude\": 23.7385,\n  \"centerLongitude\": 90.3958,\n  \"radiusM\": 1500\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Zone (Gazipur)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('zoneId2', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/zones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameBn\": \"গাজীপুর\",\n  \"nameEn\": \"Gazipur\",\n  \"centerLatitude\": 23.9999,\n  \"centerLongitude\": 90.4203,\n  \"radiusM\": 3000\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Zone",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/zones/{{zoneId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"radiusM\": 2000\n}"
+            }
+          }
+        },
+        {
+          "name": "List Route Fares",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/route-fares"
+          }
+        },
+        {
+          "name": "Create Route Fare",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('routeFareId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/route-fares",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{zoneId2}}\",\n  \"vehicleType\": \"motorcycle\",\n  \"fixedFare\": 350,\n  \"bidirectional\": true,\n  \"priority\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Route Fare",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/route-fares/{{routeFareId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fixedFare\": 380\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Route Fare",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/route-fares/{{routeFareId}}"
+          }
+        },
+        {
+          "name": "Delete Zone",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/zones/{{zoneId}}"
+          }
+        },
+        {
+          "name": "List Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/settings"
+          }
+        },
+        {
+          "name": "Update Matching + Sparks Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"values\": {\n    \"matching.weights.proximity\": 0.6,\n    \"matching.weights.fairness\": 0.3,\n    \"matching.weights.idle\": 0.1,\n    \"perks.employee.discountPct\": 10,\n    \"perks.employee.monthlyCapBdt\": 1000,\n    \"service.rental.vehicleTypes\": [\n      \"car\",\n      \"van\"\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Update System Setting (super admin only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"values\": {\n    \"commission.defaultPct\": 15\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users?page=1&pageSize=25&employee=true"
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Block User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/block",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Repeated no-shows\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unblock User",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/unblock"
+          }
+        },
+        {
+          "name": "List Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/drivers?verification=approved&online=true"
+          }
+        },
+        {
+          "name": "Pending Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/drivers/pending"
+          }
+        },
+        {
+          "name": "Get Driver",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/drivers/{{driverId}}"
+          }
+        },
+        {
+          "name": "Verify Driver (approve)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/drivers/{{driverId}}/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Driver (reject)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/drivers/{{driverId}}/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"rejectionReason\": \"Licence photo unreadable\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Suspend Driver",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/drivers/{{driverId}}/suspend",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Complaint under review\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unsuspend Driver",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/drivers/{{driverId}}/unsuspend"
+          }
+        },
+        {
+          "name": "Update Vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/vehicles/{{vehicleId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isVerified\": true,\n  \"servesRental\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "List Trips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/trips?service=ride&status=searching_driver,accepted&page=1"
+          }
+        },
+        {
+          "name": "Trip Detail (with offers)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/trips/{{tripId}}"
+          }
+        },
+        {
+          "name": "Cancel Trip",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/trips/{{tripId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer called support\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Assign Driver",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/trips/{{tripId}}/assign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driverId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Redispatch",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/trips/{{tripId}}/redispatch"
+          }
+        },
+        {
+          "name": "Upcoming Rentals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/rentals/upcoming?hours=24"
+          }
+        },
+        {
+          "name": "List Promotions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/promotions"
+          }
+        },
+        {
+          "name": "Create Employee Promotion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/promotions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"GILAB20\",\n  \"title\": \"GiLab staff 20% off\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 20,\n  \"maxDiscountAmount\": 100,\n  \"validFrom\": \"2026-11-16T00:00:00.000Z\",\n  \"validUntil\": \"2026-12-31T23:59:59.000Z\",\n  \"userUsageLimit\": 10,\n  \"audience\": \"employees\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Promotion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/promotions/:promotionId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"discountValue\": 25\n}"
+            }
+          }
+        },
+        {
+          "name": "Toggle Promotion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/promotions/:promotionId/toggle",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/support/tickets?status=open"
+          }
+        },
+        {
+          "name": "Update Ticket Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/support/tickets/:ticketId/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolution\": \"Refunded\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Report Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/reports/summary?from=2026-11-01T00:00:00Z&to=2026-11-17T00:00:00Z"
+          }
+        },
+        {
+          "name": "Fairness Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/reports/fairness"
+          }
+        },
+        {
+          "name": "Trips CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/reports/trips.csv?from=2026-11-01T00:00:00Z&to=2026-11-17T00:00:00Z"
+          }
+        },
+        {
+          "name": "Audit Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/audit-logs?page=1&pageSize=50"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health"
+          }
+        }
+      ]
+    }
+  ]
+}
