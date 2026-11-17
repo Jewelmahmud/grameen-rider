@@ -6,9 +6,17 @@ import {
   Param,
   Query,
   Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { Request as ExpressRequest } from 'express';
 import { RatingsService } from './ratings.service';
+
+class SubmitRatingBody {
+  @IsInt() @Min(1) @Max(5) rating: number;
+  @IsOptional() @IsString() @MaxLength(1000) review?: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(40, { each: true }) tags?: string[];
+}
 
 @Controller()
 export class RatingsController {
@@ -16,9 +24,9 @@ export class RatingsController {
 
   @Post('trips/:id/rate')
   async submitRating(
-    @Param('id') tripId: string,
+    @Param('id', ParseUUIDPipe) tripId: string,
     @Request() req: ExpressRequest,
-    @Body() body: { rating: number; review?: string; tags?: string[] },
+    @Body() body: SubmitRatingBody,
   ) {
     return this.ratingsService.submitRating(tripId, req.userProfile.id, {
       rating: body.rating,

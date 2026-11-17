@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { Alert, Button, FormControlLabel, FormLabel, Link, Radio, RadioGroup, Stack, TextField, Typography } from '@mui/material';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
+import { Alert, Button, Checkbox, FormControlLabel, FormLabel, Link, Radio, RadioGroup, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { authApi, type RegisterInput } from '../../api/api';
 import { errorMessage } from '../../api/http';
@@ -9,7 +9,9 @@ import { AuthShell, BD_PHONE } from './AuthShell';
 export function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [form, setForm] = useState<RegisterInput>({ roleName: 'customer', phone: '', password: '', firstName: '', lastName: '', email: '' });
+  const [params] = useSearchParams();
+  const [agreed, setAgreed] = useState(false);
+  const [form, setForm] = useState<RegisterInput>({ roleName: params.get('role') === 'driver' ? 'grameen_ride_driver' : 'customer', phone: '', password: '', firstName: '', lastName: '', email: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const set = (k: keyof RegisterInput) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -86,7 +88,19 @@ export function RegisterPage() {
           required
           size="medium"
         />
-        <Button type="submit" variant="contained" size="large" disabled={busy || !valid}>
+        <FormControlLabel
+          control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
+          label={
+            <Typography variant="body2">
+              {t('auth.agreePrefix')}{' '}
+              <Link component={RouterLink} to="/terms" target="_blank">{t('auth.terms')}</Link>
+              {' '}{t('auth.and')}{' '}
+              <Link component={RouterLink} to="/privacy" target="_blank">{t('auth.privacy')}</Link>
+              {t('auth.agreeSuffix')}
+            </Typography>
+          }
+        />
+        <Button type="submit" variant="contained" size="large" disabled={busy || !valid || !agreed}>
           {t('auth.register')}
         </Button>
       </Stack>

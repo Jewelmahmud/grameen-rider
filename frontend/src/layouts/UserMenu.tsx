@@ -4,6 +4,8 @@ import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import LocalTaxiOutlined from '@mui/icons-material/LocalTaxiOutlined';
 import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
 import PersonOutline from '@mui/icons-material/PersonOutline';
+import HelpOutline from '@mui/icons-material/HelpOutline';
+import BookmarkBorderOutlined from '@mui/icons-material/BookmarkBorderOutlined';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthProvider';
@@ -46,6 +48,14 @@ export function UserMenu() {
         <MenuItem onClick={() => go('/book/profile')}>
           <ListItemIcon><PersonOutline fontSize="small" /></ListItemIcon>
           {t('common.profile')}
+        </MenuItem>
+        <MenuItem onClick={() => go('/book/places')}>
+          <ListItemIcon><BookmarkBorderOutlined fontSize="small" /></ListItemIcon>
+          {t('nav.places')}
+        </MenuItem>
+        <MenuItem onClick={() => go('/book/help')}>
+          <ListItemIcon><HelpOutline fontSize="small" /></ListItemIcon>
+          {t('nav.help')}
         </MenuItem>
         {me.permissions.includes('trips.book') && (
           <MenuItem onClick={() => go('/book')}>

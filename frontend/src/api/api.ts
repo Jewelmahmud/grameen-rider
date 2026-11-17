@@ -228,3 +228,39 @@ export const reportsApi = {
 
 /** Lists from older endpoints may be a plain array or a page. */
 export const itemsOf = <T>(data: T[] | Paged<T> | undefined): T[] => (Array.isArray(data) ? data : data?.items ?? []);
+
+// ─── Customer extras: support, ratings, saved places, driver status ──────────
+
+export interface SupportMessage {
+  id: string;
+  ticketId: string;
+  senderAuthUserId: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface SavedPlace {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  locationType: 'home' | 'work' | 'other';
+  isDefault?: boolean;
+}
+
+export type SavedPlaceInput = Omit<SavedPlace, 'id'>;
+
+export const customerApi = {
+  tickets: () => get<SupportTicket[]>('/support/tickets'),
+  createTicket: (body: { subject: string; description: string; category: string; tripId?: string }) =>
+    post<SupportTicket>('/support/tickets', body),
+  messages: (ticketId: string) => get<SupportMessage[]>(`/support/tickets/${ticketId}/messages`),
+  addMessage: (ticketId: string, message: string) => post<SupportMessage>(`/support/tickets/${ticketId}/messages`, { message }),
+  rateTrip: (tripId: string, rating: number, review?: string) => post(`/trips/${tripId}/rate`, { rating, review: review || undefined }),
+  places: () => get<SavedPlace[]>('/locations/favorites'),
+  addPlace: (body: SavedPlaceInput) => post<SavedPlace>('/locations/favorites', body),
+  updatePlace: (id: string, body: Partial<SavedPlaceInput>) => put<SavedPlace>(`/locations/favorites/${id}`, body),
+  deletePlace: (id: string) => del(`/locations/favorites/${id}`),
+  driverMe: () => get<DriverRow>('/drivers/me'),
+};

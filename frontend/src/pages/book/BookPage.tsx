@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Alert,
   Box,
@@ -29,6 +29,8 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { bookingApi, type QuoteInput } from '../../api/api';
 import { usePublicConfig } from '../../api/hooks';
+import { customerApi } from '../../api/api';
+import { PLACE_ICON } from './SavedPlacesPage';
 import { errorCode, errorMessage } from '../../api/http';
 import type { Place, QuoteItem, QuoteResponse, ServiceType } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
@@ -44,6 +46,7 @@ export default function BookPage() {
   const { me } = useAuth();
   const navigate = useNavigate();
   const config = usePublicConfig();
+  const saved = useQuery({ queryKey: ['places'], queryFn: customerApi.places, staleTime: 5 * 60_000 });
   const cfg = (k: string) => config.data?.[k];
 
   const [service, setService] = useState<ServiceType>('ride');
@@ -209,6 +212,20 @@ export default function BookPage() {
                 <Typography variant="body2" color="text.secondary">
                   {t('book.mapHint', { field: active === 'pickup' ? t('book.pickup') : active === 'dropoff' ? t('book.dropoff') : t('book.stops') })}
                 </Typography>
+                {(saved.data ?? []).length > 0 && (
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }} aria-label={t('places.use')}>
+                    {(saved.data ?? []).map((p) => (
+                      <Chip
+                        key={p.id}
+                        icon={PLACE_ICON[p.locationType] ?? PLACE_ICON.other}
+                        label={p.name}
+                        variant="outlined"
+                        onClick={() => setPlace(active, { address: p.address, latitude: Number(p.latitude), longitude: Number(p.longitude) })}
+                        sx={{ minHeight: 36 }}
+                      />
+                    ))}
+                  </Stack>
+                )}
 
                 {isRental ? (
                   <FormControlLabel control={<Switch checked={roundTrip} onChange={(e) => setRoundTrip(e.target.checked)} />} label={t('book.roundTrip')} />

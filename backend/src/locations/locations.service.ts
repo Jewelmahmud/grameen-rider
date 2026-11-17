@@ -3,23 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FavoriteLocation } from '../entities/favorite-location.entity';
 
-export interface CreateFavoriteLocationDto {
-  name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  locationType?: 'home' | 'work' | 'other';
-  isDefault?: boolean;
-}
+import { CreateFavoriteLocationDto, FAVORITE_FIELDS, UpdateFavoriteLocationDto } from './dto/favorite-location.dto';
 
-export interface UpdateFavoriteLocationDto {
-  name?: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
-  locationType?: 'home' | 'work' | 'other';
-  isDefault?: boolean;
-}
+/** Copies only the editable fields, so a request can't set ids or owners. */
+const pickFields = (data: object) =>
+  Object.fromEntries(FAVORITE_FIELDS.filter((k) => (data as any)[k] !== undefined).map((k) => [k, (data as any)[k]]));
 
 @Injectable()
 export class LocationsService {
@@ -43,7 +31,7 @@ export class LocationsService {
     }
 
     const location = this.favoriteLocationRepository.create({
-      ...data,
+      ...pickFields(data),
       userProfileId,
     });
     return this.favoriteLocationRepository.save(location);
@@ -84,7 +72,7 @@ export class LocationsService {
       }
     }
 
-    Object.assign(location, data);
+    Object.assign(location, pickFields(data));
     return this.favoriteLocationRepository.save(location);
   }
 

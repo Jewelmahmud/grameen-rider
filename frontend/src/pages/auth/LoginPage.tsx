@@ -130,6 +130,11 @@ export function LoginPage() {
             autoComplete="current-password"
             required
             size="medium"
+            helperText={
+              <Link component={RouterLink} to="/forgot-password">
+                {t('auth.forgot')}
+              </Link>
+            }
           />
         ) : (
           otpSentTo && (

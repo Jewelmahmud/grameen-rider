@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { homeFor, useAuth } from './auth/AuthProvider';
+import { useAuth } from './auth/AuthProvider';
 import { FullPageSpinner, GuestOnly, RequireAuth, RequirePermission } from './auth/guards';
 import { ConsoleLayout } from './layouts/ConsoleLayout';
 import { CustomerLayout } from './layouts/CustomerLayout';
@@ -8,8 +8,19 @@ import { firstConsolePath } from './layouts/nav';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { VerifyPhonePage } from './pages/auth/VerifyPhonePage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { PublicLayout } from './layouts/PublicLayout';
+// The front door loads with the app, not as a separate chunk, so first visits don't flash a spinner.
+import LandingPage from './pages/site/LandingPage';
 import type { Permission } from './api/types';
 
+const DrivePage = lazy(() => import('./pages/site/DrivePage'));
+const HelpCenterPage = lazy(() => import('./pages/site/HelpCenterPage'));
+const LegalPage = lazy(() => import('./pages/site/LegalPage'));
+const NotFoundPage = lazy(() => import('./pages/site/NotFoundPage'));
+const CustomerHelpPage = lazy(() => import('./pages/book/CustomerHelpPage'));
+const SavedPlacesPage = lazy(() => import('./pages/book/SavedPlacesPage'));
+const DriverHomePage = lazy(() => import('./pages/driver/DriverHomePage'));
 const BookPage = lazy(() => import('./pages/book/BookPage'));
 const TripPage = lazy(() => import('./pages/book/TripPage'));
 const MyTripsPage = lazy(() => import('./pages/book/MyTripsPage'));
@@ -33,25 +44,27 @@ const ReportsPage = lazy(() => import('./pages/console/ReportsPage'));
 const FairnessPage = lazy(() => import('./pages/console/FairnessPage'));
 const AuditPage = lazy(() => import('./pages/console/AuditPage'));
 
-const guard = (perm: Permission, el: React.ReactNode) => <RequirePermission perm={perm}>{el}</RequirePermission>;
+const guard = (perm: Permission, el: ReactNode) => <RequirePermission perm={perm}>{el}</RequirePermission>;
 
 function ConsoleHome() {
   const { can } = useAuth();
   return can('reports.read') ? <OverviewPage /> : <Navigate to={firstConsolePath((p) => can(p))} replace />;
 }
 
-function Root() {
-  const { status, me } = useAuth();
-  if (status === 'loading') return <FullPageSpinner />;
-  return <Navigate to={status === 'authenticated' ? homeFor(me) : '/login'} replace />;
-}
-
 export default function App() {
   return (
     <Suspense fallback={<FullPageSpinner />}>
       <Routes>
-        <Route path="/" element={<Root />} />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/drive" element={<DrivePage />} />
+          <Route path="/help" element={<HelpCenterPage />} />
+          <Route path="/terms" element={<LegalPage doc="terms" />} />
+          <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
         <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
+        <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
         <Route path="/register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
         <Route path="/verify-phone" element={<VerifyPhonePage />} />
 
@@ -60,6 +73,12 @@ export default function App() {
           <Route path="trips" element={<MyTripsPage />} />
           <Route path="trips/:id" element={<TripPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="help" element={<CustomerHelpPage />} />
+          <Route path="places" element={<SavedPlacesPage />} />
+        </Route>
+
+        <Route path="/driver" element={<RequireAuth><CustomerLayout /></RequireAuth>}>
+          <Route index element={<DriverHomePage />} />
         </Route>
 
         <Route path="/console" element={<RequireAuth staff><ConsoleLayout /></RequireAuth>}>
@@ -83,9 +102,8 @@ export default function App() {
           <Route path="reports" element={guard('reports.read', <ReportsPage />)} />
           <Route path="reports/fairness" element={guard('reports.read', <FairnessPage />)} />
           <Route path="audit" element={guard('audit.read', <AuditPage />)} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

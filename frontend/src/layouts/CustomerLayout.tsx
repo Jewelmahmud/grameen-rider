@@ -22,7 +22,7 @@ export function CustomerLayout() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const current = [...TABS].sort((a, b) => b.to.length - a.to.length).find((tab) => location.pathname.startsWith(tab.to))?.to ?? '/book';
+  const current = [...TABS].sort((a, b) => b.to.length - a.to.length).find((tab) => (tab.to === '/book' ? location.pathname === '/book' : location.pathname.startsWith(tab.to)))?.to ?? false;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: small ? 9 : 0 }}>

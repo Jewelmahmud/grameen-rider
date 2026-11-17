@@ -700,6 +700,28 @@ in the audit log, every console page loading without console errors, phone-width
 quotes, booking and dispatch in the browser (need Redis), the real GiLab server, and a socket feed on the web
 (trip page polls instead).
 
+## 11c. Public site and customer extras — done 2026-11-17
+
+Copy follows the StoryBrand SB7 framework (character, problem, guide, plan, call to action, failure, success) in
+Bangla and English (`frontend/src/content/site.ts`), and only claims what the product does today.
+
+| Page | Path |
+|---|---|
+| Landing (SB7, rides + rentals, driver and GiLab-employee hand-offs) | `/` |
+| Drive with us (SB7 for drivers: fair-share matching) | `/drive` |
+| Help centre (FAQ, contact) | `/help` |
+| Terms, Privacy — **draft text, needs legal review** (banner shown) | `/terms`, `/privacy` |
+| Forgot password (one-time-code login; GiLab has no reset endpoint) | `/forgot-password` |
+| 404 | any unknown path |
+| Customer support requests and replies | `/book/help` |
+| Saved places (+ one-tap chips on the booking form) | `/book/places` |
+| Rate the driver after a completed trip | trip page |
+| Driver home: registration status + where to get the driver app | `/driver` |
+
+Sign-up now requires agreeing to Terms and Privacy; `/register?role=driver` preselects driving. Backend hardening:
+saved places validate input and copy only editable fields (a request could previously overwrite another user's place
+by id); ratings validate 1–5; customers can't post or read internal support notes.
+
 ## 12. What to revisit as the system grows
 - Server-side route distance (self-hosted OSRM) instead of `max(client, haversine)`.
 - Polygon zones, automatic surge, per-zone rental surcharges, zone-scoped operations staff (branch admins limited to

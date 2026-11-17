@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { SupportService } from './support.service';
@@ -28,7 +29,7 @@ export class SupportController {
   @Post('tickets/:id/messages')
   addMessage(
     @Request() req: ExpressRequest,
-    @Param('id') ticketId: string,
+    @Param('id', ParseUUIDPipe) ticketId: string,
     @Body() dto: CreateMessageDto,
   ) {
     return this.supportService.addMessage(
@@ -40,7 +41,7 @@ export class SupportController {
   }
 
   @Get('tickets/:id/messages')
-  getMessages(@Request() req: ExpressRequest, @Param('id') ticketId: string) {
+  getMessages(@Request() req: ExpressRequest, @Param('id', ParseUUIDPipe) ticketId: string) {
     return this.supportService.getMessages(ticketId, req.userProfile.id);
   }
 }

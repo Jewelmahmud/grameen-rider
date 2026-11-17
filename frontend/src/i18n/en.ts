@@ -22,6 +22,7 @@ const en = {
     verified: 'Phone verified. You can log in now.', needsVerification: 'Verify your phone number before logging in.',
     serviceDown: 'Login service is unavailable. Please try again shortly.', blocked: 'This account is blocked. Contact support.',
     rateLimited: 'Too many attempts. Please wait a few minutes.', sessionEnded: 'Your session ended. Please log in again.',
+    forgot: 'Forgot password?', agreePrefix: 'I agree to the', terms: 'Terms of Service', and: 'and', privacy: 'Privacy Policy', agreeSuffix: '.',
     registered: 'Account created. Enter the code sent to your phone.',
   },
   nav: {
@@ -30,7 +31,7 @@ const en = {
     simulator: 'Fare simulator', matching: 'Matching', people: 'People', drivers: 'Drivers', customers: 'Customers',
     growth: 'Growth', promotions: 'Promotions', sparks: 'Employee sparks', support: 'Support', reports: 'Reports',
     fairness: 'Fairness', settings: 'Settings', audit: 'Audit log', book: 'Book', myTrips: 'My trips',
-    console: 'Console', bookRide: 'Book a ride',
+    console: 'Console', bookRide: 'Book a ride', help: 'Help', places: 'Saved places',
   },
   roles: {
     super_admin: 'Super admin', ride_admin: 'Ride admin', operations: 'Operations', driver: 'Driver', customer: 'Customer',
@@ -68,6 +69,23 @@ const en = {
     employee: 'Employee', offers: 'Dispatch timeline', wave: 'Wave {{n}}', score: 'Score', assign: 'Assign driver',
     redispatch: 'Restart matching', cancel: 'Cancel trip', driverId: 'Driver', vehicleId: 'Vehicle (optional)',
     unassigned: 'Unassigned', startsIn: 'Starts {{time}}', paymentMethod: 'Payment', commission: 'Platform commission',
+  },
+  support: {
+    title: 'Help & support', sub: 'Open a request and follow our replies here.', new: 'New request', subject: 'Subject',
+    description: 'Tell us what happened', category: 'Topic', trip: 'Related trip (optional)', send: 'Send', reply: 'Write a reply',
+    empty: 'You have no support requests.', faq: 'Read common questions', sent: 'Request sent. We will reply here.',
+    status: { open: 'Open', in_progress: 'In progress', resolved: 'Resolved', closed: 'Closed' },
+    categories: { trip_issue: 'A trip', payment_issue: 'Payment', driver_complaint: 'A driver', technical_issue: 'The app or website', account_issue: 'My account', other: 'Something else' },
+    resolution: 'Our answer', you: 'You', team: 'Grameen Ride support',
+  },
+  places: {
+    title: 'Saved places', sub: 'Save places you go often and pick them in one tap when booking.', add: 'Add place', name: 'Name',
+    type: 'Type', home: 'Home', work: 'Work', other: 'Other', empty: 'No saved places yet.', pickOnMap: 'Search an address or tap the map',
+    use: 'Saved places',
+  },
+  rate: {
+    title: 'How was your trip?', sub: 'Your rating helps keep Grameen Ride fair and safe.', review: 'Anything to add? (optional)',
+    submit: 'Submit rating', thanks: 'Thanks for your rating!', stars: '{{n}} out of 5',
   },
   sparks: {
     badge: 'GiLab employee', hello: 'Hello, {{name}}', discount: '{{pct}}% off your trips',

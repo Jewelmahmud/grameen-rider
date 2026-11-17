@@ -54,7 +54,8 @@ export class SupportService {
       senderAuthUserId,
       message: dto.message,
       attachments: dto.attachments ?? null,
-      isInternal: dto.isInternal ?? false,
+      // Customers never write internal (staff-only) notes.
+      isInternal: false,
     });
     return this.messageRepository.save(msg);
   }
@@ -68,8 +69,9 @@ export class SupportService {
       throw new ForbiddenException('You do not have access to this ticket');
     }
 
+    // Internal staff notes stay out of the customer's view.
     return this.messageRepository.find({
-      where: { ticketId },
+      where: { ticketId, isInternal: false },
       order: { createdAt: 'ASC' },
     });
   }

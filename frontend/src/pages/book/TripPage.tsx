@@ -7,6 +7,7 @@ import { bookingApi } from '../../api/api';
 import type { TripStatus } from '../../api/types';
 import { CardSkeleton, ConfirmDialog, ErrorAlert, StatusChip, useNotify } from '../../components/common';
 import { MapView, PINS } from '../../components/map';
+import { RateTrip } from './RateTrip';
 import { vehicleLabel } from '../../i18n';
 import { dateTime, fullName, money, num } from '../../lib/format';
 
@@ -107,9 +108,11 @@ export default function TripPage() {
             <Line label={t('book.total')} value={money(trip.totalFare)} strong />
             <Line label={t('book.payment')} value={t(`book.${trip.paymentMethod}`, { defaultValue: trip.paymentMethod })} />
 
+            {s === 'completed' && trip.driverId && <RateTrip tripId={trip.id} />}
             <ErrorAlert error={q.error} />
-            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
               <Button component={RouterLink} to="/book/trips">{t('nav.myTrips')}</Button>
+              <Button component={RouterLink} to={`/book/help?trip=${trip.id}`}>{t('nav.help')}</Button>
               {CANCELLABLE.includes(s) && (
                 <Button color="error" variant="outlined" onClick={() => setCancelOpen(true)}>{t('book.cancelTrip')}</Button>
               )}

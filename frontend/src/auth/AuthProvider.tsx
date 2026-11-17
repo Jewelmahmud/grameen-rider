@@ -117,5 +117,6 @@ export function useAuth() {
   return ctx;
 }
 
-/** Where a user lands after login: staff to the console, everyone else to booking. */
-export const homeFor = (me?: Me) => (me?.isStaff ? '/console' : '/book');
+/** Where a user lands after login: staff to the console, drivers to their status page, everyone else to booking. */
+export const homeFor = (me?: Me) =>
+  me?.isStaff ? '/console' : me?.platformRoles.includes('driver') ? '/driver' : '/book';
