@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:grameen_core/grameen_core.dart';
+import 'package:provider/provider.dart';
 import 'home_page.dart';
 import 'trip_page.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
-import '../services/realtime_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -15,6 +17,8 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  late final RealtimeClient _realtime;
+  final List<StreamSubscription<Object>> _subscriptions = [];
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -35,21 +39,22 @@ class _MainScreenState extends State<MainScreen> {
     _setupRealtime();
   }
 
-  Future<void> _setupRealtime() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userProfileId = prefs.getString('phoneNumber') ?? 'rider-demo';
+  void _setupRealtime() {
+    _realtime = context.read<GrameenCore>().realtime;
+    final session = context.read<Session>();
+    if (session.profile == null) return;
 
-    RealtimeService.instance.connect(userProfileId: userProfileId, role: 'rider');
+    // The socket logs in with the access token; the server knows who we are from it.
+    _realtime.connect(tokenProvider: session.accessToken);
 
-    RealtimeService.instance.on('trip.status.updated', (data) {
+    _subscriptions.add(_realtime.tripStatus.listen((event) {
       if (!mounted) return;
-      final status = data is Map ? data['status'] : null;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ট্রিপ আপডেট: ${status ?? 'স্ট্যাটাস পরিবর্তন হয়েছে'}')),
+        SnackBar(content: Text('ট্রিপ আপডেট: ${event.status.wire}')),
       );
-    });
+    }));
 
-    RealtimeService.instance.on('driver.location.updated', (_) {
+    _subscriptions.add(_realtime.driverLocation.listen((_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -57,14 +62,15 @@ class _MainScreenState extends State<MainScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-    });
+    }));
   }
 
   @override
   void dispose() {
-    RealtimeService.instance.off('trip.status.updated');
-    RealtimeService.instance.off('driver.location.updated');
-    RealtimeService.instance.disconnect();
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _realtime.disconnect();
     super.dispose();
   }
 

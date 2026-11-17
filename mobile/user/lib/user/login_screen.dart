@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:grameen_core/grameen_core.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_logo.dart';
-import 'main_screen.dart';
-import '../rider/rider_main_screen.dart';
+import 'auth_gate.dart';
+import 'register_screen.dart';
+
+enum _LoginMode { password, otp }
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,17 +19,29 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
-  final _otpController = TextEditingController();
+  final _passwordController = TextEditingController();
+  _LoginMode _mode = _LoginMode.password;
   bool _isLoading = false;
-  bool _otpSent = false;
   bool _isBangla = true;
   bool _isPasswordVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
-    _otpController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isBangla = prefs.getBool('isBangla') ?? true;
+    if (mounted) setState(() => _isBangla = isBangla);
   }
 
   void _toggleLanguage() async {
@@ -37,43 +53,52 @@ class _LoginScreenState extends State<LoginScreen> {
     await prefs.setBool('isBangla', _isBangla);
   }
 
-  Future<void> _sendOTP() async {
+  Future<void> _loginWithPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
     });
 
-    // TODO: Implement actual OTP sending
-    await Future.delayed(const Duration(seconds: 2)); // Simulating API call
-
-    setState(() {
-      _isLoading = false;
-      _otpSent = true;
-    });
+    try {
+      // On success AuthGate swaps this screen for MainScreen.
+      await context.read<Session>().login(
+            phone: toInternationalPhone(_phoneController.text),
+            password: _passwordController.text,
+          );
+    } on ApiException catch (e) {
+      _showError(authErrorMessage(e, isBangla: _isBangla));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  Future<void> _verifyOTP() async {
+  // TODO: Call the OTP endpoints once the backend has them (plan item B4).
+  Future<void> _sendOTP() async {
     if (!_formKey.currentState!.validate()) return;
+    _showError(_isBangla
+        ? 'ওটিপি লগইন শীঘ্রই আসছে। আপাতত পাসওয়ার্ড দিয়ে লগইন করুন।'
+        : 'OTP login is coming soon. Please log in with your password.');
+  }
 
-    setState(() {
-      _isLoading = true;
-    });
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
-    // TODO: Implement actual OTP verification
-    await Future.delayed(const Duration(seconds: 2)); // Simulating API call
-
-    // Save login state
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', true);
-    await prefs.setString('phoneNumber', _phoneController.text);
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
-      );
-    }
+  void _openRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterScreen(isBangla: _isBangla),
+      ),
+    );
   }
 
   String? _validatePhone(String? value) {
@@ -91,20 +116,93 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  String? _validateOTP(String? value) {
+  String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return _isBangla ? 'ওটিপি দিন' : 'OTP is required';
-    }
-    if (value.length != 6) {
-      return _isBangla ? '৬ ডিজিটের ওটিপি দিন' : 'Enter valid OTP';
+      return _isBangla ? 'পাসওয়ার্ড দিন' : 'Password required';
     }
     return null;
   }
 
+  Widget _buildToggle({
+    required List<String> labels,
+    required int selected,
+    required ValueChanged<int> onSelected,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              GestureDetector(
+                onTap: selected == i ? null : () => onSelected(i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  color: selected == i ? Colors.white : Colors.transparent,
+                  child: Text(
+                    labels[i],
+                    style: TextStyle(
+                      color: selected == i
+                          ? const Color(0xFF1bc266)
+                          : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required FormFieldValidator<String> validator,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    bool obscureText = false,
+    Widget? suffixIcon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          prefixIcon: Icon(icon, color: Colors.white70),
+          suffixIcon: suffixIcon,
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
+    final isPasswordMode = _mode == _LoginMode.password;
 
     return Scaffold(
       body: Stack(
@@ -128,61 +226,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.topRight,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(25),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: _isBangla ? null : _toggleLanguage,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                color: _isBangla
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                child: Text(
-                                  'বাং',
-                                  style: TextStyle(
-                                    color: _isBangla
-                                        ? const Color(0xFF1bc266)
-                                        : Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _isBangla ? _toggleLanguage : null,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                color: !_isBangla
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                child: Text(
-                                  'EN',
-                                  style: TextStyle(
-                                    color: !_isBangla
-                                        ? const Color(0xFF1bc266)
-                                        : Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    child: _buildToggle(
+                      labels: const ['বাং', 'EN'],
+                      selected: _isBangla ? 0 : 1,
+                      onSelected: (_) => _toggleLanguage(),
                     ),
                   ),
                 ),
@@ -194,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 24),
                           // Logo and Title
                           const Center(
                             child: AppLogo(size: 120),
@@ -211,87 +258,58 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(height: 48),
-                          // Phone Number Field
+                          const SizedBox(height: 32),
+                          // Password / OTP switch
+                          Center(
+                            child: _buildToggle(
+                              labels: _isBangla
+                                  ? const ['পাসওয়ার্ড', 'ওটিপি']
+                                  : const ['Password', 'OTP'],
+                              selected: _mode.index,
+                              onSelected: (i) => setState(() {
+                                _mode = _LoginMode.values[i];
+                                _formKey.currentState?.reset();
+                              }),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                           Center(
                             child: SizedBox(
                               width: size.width * 0.65,
                               child: Column(
                                 children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),
-                                      border: Border.all(
-                                          color: Colors.white, width: 2),
-                                    ),
-                                    child: TextFormField(
-                                      controller: _phoneController,
-                                      keyboardType: TextInputType.phone,
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                      decoration: InputDecoration(
-                                        labelText:
-                                            _isBangla ? 'ফোন নাম্বার' : 'Phone',
-                                        labelStyle: const TextStyle(
-                                            color: Colors.white70),
-                                        prefixIcon: const Icon(
-                                            Icons.phone_android,
-                                            color: Colors.white70),
-                                        border: InputBorder.none,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 20, vertical: 16),
-                                      ),
-                                      validator: _validatePhone,
-                                    ),
+                                  _buildField(
+                                    controller: _phoneController,
+                                    label: _isBangla ? 'ফোন নাম্বার' : 'Phone',
+                                    icon: Icons.phone_android,
+                                    keyboardType: TextInputType.phone,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(11),
+                                    ],
+                                    validator: _validatePhone,
                                   ),
-                                  const SizedBox(height: 24),
-                                  if (_otpSent) ...[
-                                    TextFormField(
-                                      controller: _otpController,
-                                      keyboardType: TextInputType.number,
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                      decoration: InputDecoration(
-                                        labelText: 'ওটিপি',
-                                        labelStyle: const TextStyle(
-                                            color: Colors.white70),
-                                        hintText: '৬ ডিজিটের ওটিপি',
-                                        hintStyle: const TextStyle(
-                                            color: Colors.white60),
-                                        prefixIcon: const Icon(Icons.lock,
-                                            color: Colors.white70),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                              color: Colors.white, width: 2),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                              color: Colors.white, width: 2),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          borderSide: const BorderSide(
-                                              color: Colors.white, width: 2),
-                                        ),
-                                      ),
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(6),
-                                      ],
-                                      validator: _validateOTP,
-                                    ),
+                                  if (isPasswordMode) ...[
                                     const SizedBox(height: 16),
-                                    Text(
-                                      '${_phoneController.text} নম্বরে ওটিপি পাঠানো হয়েছে',
-                                      style: const TextStyle(
-                                          color: Colors.white70),
-                                      textAlign: TextAlign.center,
+                                    _buildField(
+                                      controller: _passwordController,
+                                      label:
+                                          _isBangla ? 'পাসওয়ার্ড' : 'Password',
+                                      icon: Icons.lock,
+                                      obscureText: !_isPasswordVisible,
+                                      validator: _validatePassword,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _isPasswordVisible
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                          color: Colors.white70,
+                                        ),
+                                        onPressed: () => setState(() {
+                                          _isPasswordVisible =
+                                              !_isPasswordVisible;
+                                        }),
+                                      ),
                                     ),
                                   ],
                                   const SizedBox(height: 24),
@@ -301,7 +319,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: ElevatedButton(
                                       onPressed: _isLoading
                                           ? null
-                                          : (_otpSent ? _verifyOTP : _sendOTP),
+                                          : (isPasswordMode
+                                              ? _loginWithPassword
+                                              : _sendOTP),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Theme.of(context)
                                             .colorScheme
@@ -324,9 +344,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ),
                                             )
                                           : Text(
-                                              _otpSent
-                                                  ? 'লগইন করুন'
-                                                  : 'ওটিপি পাঠান',
+                                              isPasswordMode
+                                                  ? (_isBangla
+                                                      ? 'লগইন করুন'
+                                                      : 'Log in')
+                                                  : (_isBangla
+                                                      ? 'ওটিপি পাঠান'
+                                                      : 'Send OTP'),
                                               style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
@@ -338,56 +362,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          if (_otpSent) ...[
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        _otpSent = false;
-                                        _otpController.clear();
-                                      });
-                                    },
-                              child: const Text(
-                                'মোবাইল নম্বর পরিবর্তন করুন',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
                           const SizedBox(height: 16),
-                          // Home Page Link
                           TextButton(
-                            onPressed: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const MainScreen(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              _isBangla ? 'কাস্টমার হোম' : 'Customer Home',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RiderMainScreen(),
-                                ),
-                              );
-                            },
+                            onPressed: _isLoading ? null : _openRegister,
                             child: Text(
                               _isBangla
-                                  ? 'রাইডার ড্যাশবোর্ড'
-                                  : 'Rider Dashboard',
+                                  ? 'অ্যাকাউন্ট নেই? নতুন অ্যাকাউন্ট খুলুন'
+                                  : "Don't have an account? Sign up",
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,

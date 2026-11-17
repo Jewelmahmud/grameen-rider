@@ -1,24 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'user/login_screen.dart';
-import 'user/main_screen.dart';
+import 'package:grameen_core/grameen_core.dart';
+import 'package:provider/provider.dart';
+import 'user/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  runApp(MyApp(core: GrameenCore.create()));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.core});
 
-  Future<bool> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('isLoggedIn') ?? false;
-  }
+  final GrameenCore core;
 
   @override
   Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        Provider<GrameenCore>.value(value: core),
+        ChangeNotifierProvider<Session>.value(value: core.session),
+      ],
+      child: _buildApp(),
+    );
+  }
+
+  Widget _buildApp() {
     return MaterialApp(
       title: 'গ্রামীণ রাইড',
       debugShowCheckedModeBanner: false,
@@ -70,21 +77,7 @@ class MyApp extends StatelessWidget {
         Locale('bn', 'BD'), // Bangla
         Locale('en', 'US'), // English
       ],
-      home: FutureBuilder<bool>(
-        future: _checkLoginStatus(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          final isLoggedIn = snapshot.data ?? false;
-          return isLoggedIn ? const MainScreen() : const LoginScreen();
-        },
-      ),
+      home: const AuthGate(),
     );
   }
 }

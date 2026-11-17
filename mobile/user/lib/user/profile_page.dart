@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:grameen_core/grameen_core.dart';
+import 'package:provider/provider.dart';
+import 'auth_gate.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   Widget _buildProfileHeader(BuildContext context) {
+    final profile = context.watch<Session>().profile;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -63,18 +67,18 @@ class ProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'মোহাম্মদ রহিম',
-            style: TextStyle(
+          Text(
+            profile?.fullName ?? '',
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            '+৮৮০১৭১২৩৪৫৬৭৮',
-            style: TextStyle(
+          Text(
+            profile?.phoneNumber ?? '',
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.white,
             ),
@@ -395,22 +399,21 @@ class ProfilePage extends StatelessWidget {
                 icon: Icons.logout,
                 iconColor: Colors.red,
                 onTap: () {
-                  // TODO: Logout
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
+                    builder: (dialogContext) => AlertDialog(
                       title: const Text('লগ আউট'),
                       content: const Text(
                           'আপনি কি নিশ্চিত যে আপনি লগ আউট করতে চান?'),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: const Text('বাতিল'),
                         ),
                         TextButton(
                           onPressed: () {
-                            Navigator.pop(context);
-                            // TODO: Implement logout logic
+                            Navigator.pop(dialogContext);
+                            signOut(context);
                           },
                           child: const Text('লগ আউট'),
                         ),

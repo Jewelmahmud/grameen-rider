@@ -45,6 +45,8 @@ dependencies:
   http: ^1.4.0
   url_launcher: ^6.2.2
   socket_io_client: ^3.1.2
+  grameen_core:
+    path: ../packages/grameen_core
   # google_maps_flutter: ^2.5.0  # Remove this - we'll use OpenStreetMap instead
   # location: ^5.0.3  # Remove this - we'll use geolocator
 
@@ -53,6 +55,7 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
   flutter_lints: ^2.0.0
+  dio: ^5.11.1
 
 flutter_launcher_icons:
   android: true

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'auth_gate.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -162,9 +163,7 @@ class SettingsScreen extends StatelessWidget {
                         _buildSettingTile(
                           title: 'লগ আউট',
                           icon: Icons.logout,
-                          onTap: () {
-                            // TODO: Handle logout
-                          },
+                          onTap: () => signOut(context),
                         ),
                       ],
                     ),
