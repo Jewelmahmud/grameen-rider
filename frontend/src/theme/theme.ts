@@ -11,8 +11,10 @@ export const tokens = {
   primary: '#0f7a3f',
   primaryDark: '#0a5c2f',
   primaryLight: '#4fbf7f',
-  radius: 8,
-  fontFamily: '"Hind Siliguri", "Noto Sans Bengali", Roboto, "Helvetica Neue", Arial, sans-serif',
+  /** Corner radius in px. Kept small (2–3 px) for a crisp look; sx borderRadius values multiply this. */
+  radius: 3,
+  // Barlow first for Latin text and digits; it has no Bengali glyphs, so Bangla falls through to SolaimanLipi.
+  fontFamily: 'Barlow, SolaimanLipi, "Noto Sans Bengali", "Helvetica Neue", Arial, sans-serif',
 };
 
 export const createAppTheme = (density: 'console' | 'customer' = 'console') =>
@@ -60,6 +62,8 @@ export const createAppTheme = (density: 'console' | 'customer' = 'console') =>
       MuiSelect: { defaultProps: { size: density === 'console' ? 'small' : 'medium' } },
       MuiDialog: { defaultProps: { fullWidth: true, maxWidth: 'sm' } },
       MuiTooltip: { defaultProps: { arrow: true } },
+      // Chips are pill-shaped by default; keep them in line with the 3 px corners.
+      MuiChip: { styleOverrides: { root: { borderRadius: tokens.radius } } },
       MuiDataGrid: {
         defaultProps: { density: 'compact', disableRowSelectionOnClick: true },
         styleOverrides: { root: { border: 'none' }, cell: { fontVariantNumeric: 'tabular-nums' } },

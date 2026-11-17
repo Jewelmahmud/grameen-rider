@@ -68,7 +68,7 @@ export function MapView({
 }) {
   const fitPoints = useMemo(() => markers.map((m) => m.position), [markers]);
   return (
-    <Box sx={{ height, borderRadius: 2, overflow: 'hidden', border: 1, borderColor: 'divider', '& .leaflet-container': { height: '100%', fontFamily: 'inherit' } }}>
+    <Box sx={{ height, borderRadius: 1, overflow: 'hidden', border: 1, borderColor: 'divider', '& .leaflet-container': { height: '100%', fontFamily: 'inherit' } }}>
       <MapContainer center={DHAKA_CENTER} zoom={12} scrollWheelZoom>
         <TileLayer url={TILE_URL} attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
         {onClick && <ClickHandler onClick={onClick} />}

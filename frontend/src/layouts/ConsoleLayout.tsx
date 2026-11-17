@@ -36,7 +36,7 @@ export function Logo({ compact }: { compact?: boolean }) {
     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
       <Box
         aria-hidden
-        sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: '#1bc266', color: '#06260f', display: 'grid', placeItems: 'center', fontWeight: 700 }}
+        sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: '#1bc266', color: '#06260f', display: 'grid', placeItems: 'center', fontWeight: 700 }}
       >
         G
       </Box>
@@ -98,7 +98,7 @@ export function ConsoleLayout() {
                   onClick={() => setMobileOpen(false)}
                   sx={{
                     mx: 1,
-                    borderRadius: 1.5,
+                    borderRadius: 1,
                     minHeight: 40,
                     justifyContent: mini ? 'center' : 'flex-start',
                     '&.Mui-selected': { bgcolor: 'action.selected', color: 'primary.main', '& .MuiListItemIcon-root': { color: 'primary.main' } },

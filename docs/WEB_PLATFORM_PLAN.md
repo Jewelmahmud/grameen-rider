@@ -505,9 +505,9 @@ alerts. Socket auth lands first; without it anyone could join the ops room or ac
   - Brand green `#1bc266` (from the apps) is too light for text on white (contrast 2.35:1). Use it for fills and
     accents only. `primary.main = #0f7a3f` (5.4:1 on white) for buttons and links, with white contrast text.
   - Neutral greys for surfaces; MUI `error`/`warning`/`info`/`success`, each checked against AA.
-  - Typography: `"Hind Siliguri", "Noto Sans Bengali", Roboto, sans-serif`; 14 px base in the console (dense),
+  - Typography: `Barlow` for English and digits, `SolaimanLipi` for Bangla (Barlow has no Bengali glyphs, so Bangla falls through); 14 px base in the console (dense),
     16 px on customer pages; line-height ~1.6 for Bangla.
-  - Radius 8, 8-px spacing grid, elevation only on dialogs and menus (outlined cards elsewhere).
+  - Radius 3 px (chips included), 8-px spacing grid, elevation only on dialogs and menus (outlined cards elsewhere).
 - **Layouts:**
   - Console: permanent `Drawer` (collapsible; temporary below `md`) with permission-filtered nav groups (Overview ·
     Operations · Pricing · Matching · People · Growth · Reports · Settings). `AppBar` with search, language switch,
@@ -681,7 +681,7 @@ token cache) or a real GiLab account end to end; neither was available on the de
 
 | Block | State |
 |---|---|
-| 8 Foundation | MUI 7 theme (light/dark, AA primary), Hind Siliguri, bn/en i18n, react-query, access token in memory + refresh token in sessionStorage with single-flight refresh, permission-filtered console nav and route guards. DEV auth bypass, mock fleet data and the old pages removed. |
+| 8 Foundation | MUI 7 theme (light/dark, AA primary), Barlow + SolaimanLipi, bn/en i18n, react-query, access token in memory + refresh token in sessionStorage with single-flight refresh, permission-filtered console nav and route guards. DEV auth bypass, mock fleet data and the old pages removed. |
 | 9 Auth | Login (password / OTP tabs), Register, VerifyPhone. `VERIFICATION_REQUIRED` routes to verification; blocked, rate-limited and GiLab-down cases have their own messages. |
 | 10 Customer | Book (ride + rental tabs, map pick + address search, stops, round trip, schedule), price per vehicle with countdown, payment + promo, confirm from `quoteId`; trip page (polls every 4 s), My trips, Profile with sparks. |
 | 11 Pricing + matching | Ride/rental rates with version history and edit drawer, zones on a map, route fares, fare simulator, Matching and Sparks settings pages. |

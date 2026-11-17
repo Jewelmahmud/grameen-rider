@@ -70,7 +70,10 @@ const routes = {
     const u = users.find((x) => (b.phone && x.phone === normalise(b.phone)) || (b.email && x.email === b.email));
     if (!b.phone && !b.email) return fail(res, 400, 'MISSING_CREDENTIALS', 'Phone or email is required');
     const ok = u && ((b.password && b.password === PASSWORD) || (b.mfaCode && b.mfaCode === CODE));
-    if (!ok) return fail(res, 401, 'AUTH_FAILED', 'ভুল ফোন নম্বর বা পাসওয়ার্ড');
+    if (!ok) {
+      console.log(`  login refused for ${b.phone ?? b.email}: ${u ? (b.mfaCode ? 'wrong code' : 'wrong password') : 'no test user with that phone/email'}`);
+      return fail(res, 401, 'AUTH_FAILED', 'ভুল ফোন নম্বর বা পাসওয়ার্ড');
+    }
     if (!u.verified) return fail(res, 401, 'VERIFICATION_REQUIRED', 'ফোন নম্বর যাচাই করা হয়নি');
     send(res, 200, { success: true, user: publicUser(u), tokens: issue(u), message: 'লগইন সফল হয়েছে' });
   },
