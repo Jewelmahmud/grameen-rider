@@ -36,7 +36,7 @@ export class AdminTripsService {
       .leftJoinAndSelect('t.passenger', 'p')
       .leftJoinAndSelect('t.driver', 'd')
       .leftJoinAndSelect('d.userProfile', 'du')
-      .orderBy('t.requested_at', 'DESC')
+      .orderBy('t.requestedAt', 'DESC')
       .take(pageSize)
       .skip((page - 1) * pageSize);
 
@@ -168,7 +168,7 @@ export class AdminTripsService {
       .andWhere('t.scheduled_datetime <= :until', { until })
       .andWhere('t.scheduled_datetime >= :from', { from: new Date(Date.now() - 3_600_000) })
       .andWhere("t.status NOT IN ('completed', 'cancelled')")
-      .orderBy('t.scheduled_datetime', 'ASC')
+      .orderBy('t.scheduledDatetime', 'ASC')
       .getMany();
   }
 }

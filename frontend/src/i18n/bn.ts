@@ -1,0 +1,86 @@
+import type { Dict } from './en';
+
+const bn: Dict = {
+  app: { name: 'গ্রামীণ রাইড', console: 'কনসোল', tagline: 'সারা বাংলাদেশে রাইড ও ভাড়া' },
+  common: {
+    save: 'সংরক্ষণ', cancel: 'বাতিল', close: 'বন্ধ', confirm: 'নিশ্চিত করুন', edit: 'সম্পাদনা', delete: 'মুছুন', add: 'যোগ করুন',
+    search: 'খুঁজুন', refresh: 'রিফ্রেশ', loading: 'লোড হচ্ছে…', retry: 'আবার চেষ্টা করুন', back: 'পিছনে', next: 'পরবর্তী',
+    yes: 'হ্যাঁ', no: 'না', all: 'সব', none: 'কোনোটি না', active: 'সক্রিয়', inactive: 'নিষ্ক্রিয়', reason: 'কারণ',
+    reasonHelp: 'অডিট লগে সংরক্ষিত হবে', saved: 'সংরক্ষিত হয়েছে', status: 'অবস্থা', actions: 'কাজ', details: 'বিস্তারিত',
+    from: 'থেকে', to: 'পর্যন্ত', date: 'তারিখ', empty: 'এখনো কিছু নেই', export: 'CSV ডাউনলোড', version: 'সংস্করণ',
+    history: 'ইতিহাস', language: 'ভাষা', theme: 'থিম', light: 'লাইট', dark: 'ডার্ক', system: 'সিস্টেম',
+    logout: 'লগ আউট', profile: 'প্রোফাইল', filters: 'ফিল্টার', reset: 'ডিফল্টে ফেরান', default: 'ডিফল্ট',
+    changedBy: 'পরিবর্তন করেছেন', changedAt: 'পরিবর্তনের সময়', notAllowed: 'আপনি এটি দেখতে পারবেন, বদলাতে পারবেন না',
+    unsaved: 'অসংরক্ষিত পরিবর্তন', noAccess: 'এই পাতায় আপনার প্রবেশাধিকার নেই।',
+  },
+  auth: {
+    login: 'লগ ইন', loginTitle: 'গ্রামীণ রাইডে লগ ইন করুন', loginSub: 'সব গ্রামীণ সেবার জন্য একটি GiLab অ্যাকাউন্ট',
+    password: 'পাসওয়ার্ড', otp: 'ওয়ান-টাইম কোড', phone: 'ফোন নম্বর', phoneHelp: '01XXXXXXXXX',
+    email: 'ইমেইল (ঐচ্ছিক)', sendCode: 'কোড পাঠান', resendCode: 'আবার পাঠান', codeSent: '{{phone}} নম্বরে কোড পাঠানো হয়েছে',
+    code: 'কোড', noAccount: 'গ্রামীণ রাইডে নতুন?', register: 'অ্যাকাউন্ট খুলুন', haveAccount: 'আগেই অ্যাকাউন্ট আছে?',
+    registerTitle: 'আপনার অ্যাকাউন্ট খুলুন', firstName: 'নামের প্রথম অংশ', lastName: 'নামের শেষ অংশ', iAm: 'আমি চাই',
+    asCustomer: 'রাইড ও ভাড়া বুক করতে', asDriver: 'গ্রামীণ রাইডে গাড়ি চালাতে', passwordHelp: 'কমপক্ষে ৮ অক্ষর',
+    verifyTitle: 'ফোন যাচাই করুন', verifySub: '{{phone}} নম্বরে পাঠানো কোডটি লিখুন', verify: 'যাচাই করুন',
+    verified: 'ফোন যাচাই হয়েছে। এখন লগ ইন করুন।', needsVerification: 'লগ ইনের আগে ফোন নম্বর যাচাই করুন।',
+    serviceDown: 'লগ ইন সেবা এখন পাওয়া যাচ্ছে না। একটু পরে চেষ্টা করুন।', blocked: 'এই অ্যাকাউন্টটি বন্ধ আছে। সহায়তায় যোগাযোগ করুন।',
+    rateLimited: 'অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট অপেক্ষা করুন।', sessionEnded: 'আপনার সেশন শেষ হয়েছে। আবার লগ ইন করুন।',
+    registered: 'অ্যাকাউন্ট তৈরি হয়েছে। ফোনে পাঠানো কোডটি লিখুন।',
+  },
+  nav: {
+    overview: 'সারসংক্ষেপ', operations: 'অপারেশনস', trips: 'ট্রিপ', rentals: 'আসন্ন ভাড়া', pricing: 'ভাড়া নির্ধারণ',
+    rideRates: 'রাইডের রেট', rentalRates: 'ভাড়ার রেট', zones: 'এলাকা', routeFares: 'রুট ভাড়া',
+    simulator: 'ভাড়া সিমুলেটর', matching: 'ম্যাচিং', people: 'মানুষ', drivers: 'চালক', customers: 'গ্রাহক',
+    growth: 'প্রবৃদ্ধি', promotions: 'প্রোমোশন', sparks: 'কর্মী সুবিধা', support: 'সহায়তা', reports: 'রিপোর্ট',
+    fairness: 'ন্যায্যতা', settings: 'সেটিংস', audit: 'অডিট লগ', book: 'বুক করুন', myTrips: 'আমার ট্রিপ',
+    console: 'কনসোল', bookRide: 'রাইড বুক করুন',
+  },
+  roles: {
+    super_admin: 'সুপার অ্যাডমিন', ride_admin: 'রাইড অ্যাডমিন', operations: 'অপারেশনস', driver: 'চালক', customer: 'গ্রাহক',
+  },
+  service: { ride: 'রাইড', rental: 'ভাড়া' },
+  vehicle: {
+    motorcycle: 'মোটরসাইকেল', car: 'কার', auto: 'সিএনজি / অটো', van: 'ভ্যান', rickshaw: 'রিকশা',
+    pickup_van: 'পিকআপ ভ্যান', micro: 'মাইক্রোবাস', truck: 'ট্রাক',
+  },
+  status: {
+    pending: 'অপেক্ষমাণ', scheduled: 'নির্ধারিত', searching_driver: 'চালক খোঁজা হচ্ছে', accepted: 'গৃহীত',
+    driver_assigned: 'চালক নির্ধারিত', driver_arriving: 'চালক আসছেন', driver_arrived: 'চালক পৌঁছেছেন',
+    in_progress: 'যাত্রা চলছে', completed: 'সম্পন্ন', cancelled: 'বাতিল', no_driver_found: 'চালক পাওয়া যায়নি',
+    disputed: 'বিরোধপূর্ণ',
+  },
+  book: {
+    title: 'কোথায় যাবেন?', pickup: 'যেখান থেকে', dropoff: 'গন্তব্য', stops: 'থামার জায়গা', addStop: 'থামার জায়গা যোগ করুন',
+    roundTrip: 'যাওয়া-আসা (শুরুর জায়গায় ফিরবে)', when: 'কখন', now: 'এখনই', later: 'পরে', startAt: 'শুরুর সময়',
+    passengers: 'যাত্রী', getPrices: 'ভাড়া দেখুন', choose: 'যানবাহন বাছাই করুন', confirm: 'বুকিং নিশ্চিত করুন',
+    payment: 'পেমেন্ট', cash: 'নগদ', bkash: 'বিকাশ', nagad: 'নগদ (মোবাইল)', promo: 'প্রোমো কোড', apply: 'প্রয়োগ',
+    note: 'চালকের জন্য নোট (ঐচ্ছিক)', expiresIn: 'ভাড়াটি {{time}} ধরে রাখা আছে', expired: 'এই ভাড়ার মেয়াদ শেষ। আবার ভাড়া দেখুন।',
+    mapHint: '{{field}} ঠিক করতে মানচিত্রে চাপ দিন, অথবা ঠিকানা খুঁজুন।', searchPlace: 'জায়গা খুঁজুন',
+    useMyLocation: 'আমার অবস্থান', distance: '{{km}} কিমি', minutes: '~{{min}} মিনিট', fixedRoute: 'নির্দিষ্ট রুট ভাড়া',
+    employeeDiscount: 'GiLab কর্মী ছাড়', promoDiscount: 'প্রোমো ছাড়', youPay: 'আপনি দেবেন',
+    rentalHelp: 'ভাড়া আগে থেকে বুক করতে হয়। শুরুর প্রায় এক ঘণ্টা আগে চালক নির্ধারণ হয়।',
+    finding: 'আপনার কাছাকাছি চালক খোঁজা হচ্ছে…', findingSub: 'ন্যায্যভাবে একজন একজন করে চালককে জিজ্ঞেস করা হয়। সাধারণত এক মিনিটের কম লাগে।',
+    noDriver: 'এই মুহূর্তে কাছাকাছি কোনো চালক নেই।', tryAgain: 'আবার চেষ্টা করুন', cancelTrip: 'ট্রিপ বাতিল', cancelReason: 'কেন বাতিল করছেন?',
+    driverOnWay: 'আপনার চালক আসছেন', scheduledFor: '{{time}} এর জন্য নির্ধারিত', tripDone: 'ট্রিপ সম্পন্ন। ধন্যবাদ!',
+    activeTrip: 'আপনার একটি রাইড এখনো চলছে।', viewTrip: 'ট্রিপ দেখুন', fare: 'ভাড়া', total: 'মোট',
+    breakdown: { baseFare: 'মূল ভাড়া', distanceFare: 'দূরত্ব', timeFare: 'সময়', extraPassengerFare: 'অতিরিক্ত যাত্রী', nightSurcharge: 'রাতের অতিরিক্ত' },
+  },
+  trips: {
+    none: 'এখনো কোনো ট্রিপ নেই।', active: 'চলমান', upcoming: 'আসন্ন', past: 'আগের', number: 'ট্রিপ', passenger: 'যাত্রী',
+    driver: 'চালক', vehicle: 'যানবাহন', requested: 'অনুরোধের সময়', scheduled: 'নির্ধারিত সময়', total: 'মোট', route: 'রুট',
+    employee: 'কর্মী', offers: 'চালক খোঁজার ধাপ', wave: 'ধাপ {{n}}', score: 'স্কোর', assign: 'চালক নির্ধারণ',
+    redispatch: 'আবার খোঁজা শুরু', cancel: 'ট্রিপ বাতিল', driverId: 'চালক', vehicleId: 'যানবাহন (ঐচ্ছিক)',
+    unassigned: 'নির্ধারিত হয়নি', startsIn: '{{time}} শুরু', paymentMethod: 'পেমেন্ট', commission: 'প্ল্যাটফর্ম কমিশন',
+  },
+  sparks: {
+    badge: 'GiLab কর্মী', hello: 'স্বাগতম, {{name}}', discount: 'আপনার ট্রিপে {{pct}}% ছাড়',
+    remaining: 'এ মাসে আরও {{amount}} বাকি', priority: 'অগ্রাধিকার ম্যাচিং', title: 'আপনার GiLab সুবিধা',
+  },
+  overview: {
+    tripsToday: 'আজকের ট্রিপ', revenue: 'আজকের আয়', platformNet: 'প্ল্যাটফর্মের নিট', discounts: 'ছাড়',
+    driversOnline: 'অনলাইনে চালক', available: 'খালি', pendingDrivers: 'যাচাইয়ের অপেক্ষায় চালক',
+    rentals24h: 'আগামী ২৪ ঘণ্টায় ভাড়া', unassigned: 'নির্ধারিত হয়নি', openTickets: 'খোলা সহায়তা টিকিট', byStatus: 'আজ অবস্থা অনুযায়ী',
+    since: '{{time}} থেকে (কর্মদিবস শুরু)',
+  },
+};
+
+export default bn;

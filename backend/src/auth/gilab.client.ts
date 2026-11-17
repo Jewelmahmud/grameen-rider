@@ -117,7 +117,8 @@ export class GilabClient {
 
   private mapError(error: unknown, endpoint: GilabEndpoint, url: string): Error {
     if (axios.isAxiosError(error) && error.response) {
-      const { status, data } = error.response;
+      const { status } = error.response;
+      const data = flattenGilabError(error.response.data);
       if (status === 401) return new UnauthorizedException(data);
       // The caller's own mistakes (bad input, duplicate phone, rate limit) keep their status;
       // anything else means the auth server failed.
@@ -131,6 +132,23 @@ export class GilabClient {
     );
     return new BadGatewayException(`Auth server ${endpoint} request failed`);
   }
+}
+
+/**
+ * GiLab errors look like { success: false, error: { code, message } }. Our exception filter reads a
+ * top-level code and message, so lift them up; otherwise clients lose codes like VERIFICATION_REQUIRED.
+ */
+export function flattenGilabError(data: unknown): Record<string, unknown> | string {
+  if (!data || typeof data !== 'object') return typeof data === 'string' && data ? data : 'Auth server error';
+  const body = data as Record<string, any>;
+  const nested = body.error && typeof body.error === 'object' ? body.error : {};
+  const code = nested.code ?? body.code;
+  const message = nested.message ?? body.message ?? (typeof body.error === 'string' ? body.error : undefined);
+  return {
+    ...(code ? { code } : {}),
+    message: message ?? 'Auth server error',
+    ...(nested.details ?? body.errors ? { details: nested.details ?? body.errors } : {}),
+  };
 }
 
 /** Strips the IPv4-mapped IPv6 prefix Node reports (::ffff:10.0.0.1 → 10.0.0.1). */

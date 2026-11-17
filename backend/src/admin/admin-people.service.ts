@@ -29,7 +29,7 @@ export class AdminPeopleService {
 
   async listUsers(q: ListUsersQueryDto) {
     const p = page(q);
-    const qb = this.users.createQueryBuilder('u').orderBy('u.created_at', 'DESC').take(p.take).skip(p.skip);
+    const qb = this.users.createQueryBuilder('u').orderBy('u.createdAt', 'DESC').take(p.take).skip(p.skip);
     if (q.q) {
       qb.andWhere(
         "(u.first_name ILIKE :q OR u.last_name ILIKE :q OR u.phone_number ILIKE :q OR u.email ILIKE :q OR u.designation ILIKE :q)",
@@ -74,7 +74,7 @@ export class AdminPeopleService {
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.userProfile', 'u')
       .leftJoinAndSelect('d.vehicles', 'v')
-      .orderBy('d.created_at', 'DESC')
+      .orderBy('d.createdAt', 'DESC')
       .take(p.take)
       .skip(p.skip);
     if (q.q) {

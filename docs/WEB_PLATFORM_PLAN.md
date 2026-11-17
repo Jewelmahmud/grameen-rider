@@ -677,6 +677,29 @@ Verified: type-check, 171 unit tests, the candidate and route-fare SQL against a
 app booting with every route mapped. **Not verified:** anything that needs Redis running (quotes, dispatch jobs,
 token cache) or a real GiLab account end to end; neither was available on the dev machine.
 
+## 11b. Day 2 status (web) — done 2026-11-17
+
+| Block | State |
+|---|---|
+| 8 Foundation | MUI 7 theme (light/dark, AA primary), Hind Siliguri, bn/en i18n, react-query, access token in memory + refresh token in sessionStorage with single-flight refresh, permission-filtered console nav and route guards. DEV auth bypass, mock fleet data and the old pages removed. |
+| 9 Auth | Login (password / OTP tabs), Register, VerifyPhone. `VERIFICATION_REQUIRED` routes to verification; blocked, rate-limited and GiLab-down cases have their own messages. |
+| 10 Customer | Book (ride + rental tabs, map pick + address search, stops, round trip, schedule), price per vehicle with countdown, payment + promo, confirm from `quoteId`; trip page (polls every 4 s), My trips, Profile with sparks. |
+| 11 Pricing + matching | Ride/rental rates with version history and edit drawer, zones on a map, route fares, fare simulator, Matching and Sparks settings pages. |
+| 12 Ops | Overview, Trips (server-paged, filters), Trip detail with dispatch timeline, cancel/assign/redispatch, Upcoming rentals with T − 30 highlight, Drivers + detail (verify, suspend, vehicle switches), Customers (block). |
+| 13 Rest | Promotions (audience), Support, Reports + CSV, Fairness, Settings, Audit log. |
+
+Backend fixes found while wiring the web: GiLab error codes were lost (nested `error.code` now lifted to the top
+level); `/admin/trips` and `/admin/drivers` returned 500 (TypeORM `orderBy` needs property names with joins +
+paging); a Redis outage made every request wait ~10 s (client now fails fast). `backend/scripts/mock-gilab.js` is a
+local GiLab stand-in for development, with test users documented in its header.
+
+Verified: web type-check and production build; 175 backend tests; a browser run against the real backend + mock
+GiLab + scratch PostGIS database as global admin, operations, customer and an unverified user (login, OTP login,
+phone verification, refresh on reload, logout, permission-hidden pages, zone edit in Bangla, settings save showing
+in the audit log, every console page loading without console errors, phone-width layout). **Not verified:** price
+quotes, booking and dispatch in the browser (need Redis), the real GiLab server, and a socket feed on the web
+(trip page polls instead).
+
 ## 12. What to revisit as the system grows
 - Server-side route distance (self-hosted OSRM) instead of `max(client, haversine)`.
 - Polygon zones, automatic surge, per-zone rental surcharges, zone-scoped operations staff (branch admins limited to
